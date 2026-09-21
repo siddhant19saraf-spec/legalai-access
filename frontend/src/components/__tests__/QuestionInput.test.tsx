@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QuestionInput } from '../QuestionInput';
+import type { Jurisdiction } from '@/types';
 
-const mockJurisdictions = [
+const mockJurisdictions: { value: Jurisdiction; label: string }[] = [
   { value: 'us_ca', label: 'California' },
   { value: 'us_ny', label: 'New York' },
 ];
@@ -24,7 +25,7 @@ describe('QuestionInput', () => {
 
   it('renders jurisdiction select', () => {
     render(<QuestionInput {...defaultProps} />);
-    expect(screen.getByLabelText('Jurisdiction (Recommended for Accuracy)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Jurisdiction')).toBeInTheDocument();
   });
 
   it('submits on form submit', () => {
@@ -55,7 +56,7 @@ describe('QuestionInput', () => {
   it('includes jurisdiction in submit', () => {
     render(<QuestionInput {...defaultProps} />);
     const textarea = screen.getByLabelText('Your Legal Question');
-    const select = screen.getByLabelText('Jurisdiction (Recommended for Accuracy)');
+    const select = screen.getByLabelText('Jurisdiction');
     fireEvent.change(textarea, { target: { value: 'Test question' } });
     fireEvent.change(select, { target: { value: 'us_ca' } });
     fireEvent.submit(screen.getByRole('form'));
@@ -77,7 +78,7 @@ describe('QuestionInput', () => {
   it('disables inputs when loading', () => {
     render(<QuestionInput {...defaultProps} isLoading={true} />);
     expect(screen.getByLabelText('Your Legal Question')).toHaveAttribute('disabled');
-    expect(screen.getByLabelText('Jurisdiction (Recommended for Accuracy)')).toHaveAttribute('disabled');
+    expect(screen.getByLabelText('Jurisdiction')).toHaveAttribute('disabled');
     expect(screen.getByRole('button', { name: /analyzing/i })).toHaveAttribute('disabled');
   });
 
@@ -88,11 +89,9 @@ describe('QuestionInput', () => {
 
   it('displays external error', () => {
     render(<QuestionInput {...defaultProps} error="Server error" />);
-    // There are two alerts - check for the external error div with assertive live region (the div, not the p)
-    const externalErrorDiv = screen.getAllByText('Server error').find(el => 
-      el.tagName === 'DIV' && el.getAttribute('role') === 'alert' && el.getAttribute('aria-live') === 'assertive'
-    );
-    expect(externalErrorDiv).toBeInTheDocument();
+    const externalError = document.getElementById('legal-question-external-error');
+    expect(externalError).toBeInTheDocument();
+    expect(externalError).toHaveTextContent('Server error');
   });
 
   it('clears validation error on input change', () => {
@@ -105,10 +104,8 @@ describe('QuestionInput', () => {
     // Now fix the input - validation error should clear
     fireEvent.change(textarea, { target: { value: 'Valid question' } });
     expect(screen.queryByText('Question must be at least 3 characters')).not.toBeInTheDocument();
-    // External error should still be there (the div with assertive live region)
-    const externalErrorDiv = screen.getAllByText('Server error').find(el => 
-      el.tagName === 'DIV' && el.getAttribute('role') === 'alert' && el.getAttribute('aria-live') === 'assertive'
-    );
-    expect(externalErrorDiv).toBeInTheDocument();
+    // External error should still be there
+    const externalError = document.getElementById('legal-question-external-error');
+    expect(externalError).toBeInTheDocument();
   });
 });

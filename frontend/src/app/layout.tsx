@@ -2,12 +2,12 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'LegalAid AI — Accessible Legal Information',
-  description: 'AI-powered legal information platform providing plain-language guidance on legal questions. Not legal advice.',
+  title: 'LegalAI Access — AI-Powered Legal Information',
+  description: 'Get structured, jurisdiction-aware legal guidance powered by AI. Not legal advice.',
   keywords: ['legal information', 'legal aid', 'AI', 'access to justice', 'legal guidance'],
-  authors: [{ name: 'LegalAid AI Team' }],
+  authors: [{ name: 'LegalAI Access Team' }],
   openGraph: {
-    title: 'LegalAid AI',
+    title: 'LegalAI Access',
     description: 'Accessible legal information powered by AI',
     type: 'website',
   },

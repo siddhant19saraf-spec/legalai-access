@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, FormEvent } from 'react';
-import { Textarea, Select, PrimaryButton, VisuallyHidden, Button } from './AccessibleComponents';
+import { useState, useCallback, FormEvent, KeyboardEvent } from 'react';
+import { Textarea, Select, PrimaryButton, Button } from './AccessibleComponents';
 import type { JurisdictionOption } from '@/types';
 
 interface QuestionInputProps {
@@ -11,6 +11,12 @@ interface QuestionInputProps {
   error?: string;
 }
 
+const EXAMPLE_PROMPTS = [
+  "Describe your legal situation in plain language with your location.",
+  "I received a notice from my employer and need guidance.",
+  "What are my rights regarding a housing dispute?",
+];
+
 export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: QuestionInputProps) {
   const [question, setQuestion] = useState('');
   const [jurisdiction, setJurisdiction] = useState('');
@@ -19,28 +25,30 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
   const [questionError, setQuestionError] = useState('');
   const [charCount, setCharCount] = useState(0);
   const textareaRef = useCallback((node: HTMLTextAreaElement | null) => {
-    if (node) {
-      node.focus();
-    }
+    if (node) node.focus();
   }, []);
 
   const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
-    
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion) {
       setQuestionError('Please enter a legal question');
       return;
     }
-    
     if (trimmedQuestion.length < 3) {
       setQuestionError('Question must be at least 3 characters');
       return;
     }
-    
     setQuestionError('');
     onSubmit(trimmedQuestion, jurisdiction, context.trim());
   }, [question, jurisdiction, context, onSubmit]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e as unknown as FormEvent);
+    }
+  }, [handleSubmit]);
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -49,6 +57,8 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
     if (questionError) setQuestionError('');
   };
 
+  const isDisabled = isLoading;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate role="form" aria-label="Legal question form">
       <div>
@@ -56,27 +66,27 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
           Your Legal Question
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             ref={textareaRef}
             id="legal-question"
             value={question}
             onChange={handleQuestionChange}
+            onKeyDown={handleKeyDown}
             placeholder="Describe your legal situation or question in plain language. For example: 'My landlord gave me a 3-day eviction notice for non-payment in California. What are my options?'"
             rows={5}
             className={`
-              w-full px-3 py-2 text-sm border rounded-lg resize-y min-h-[120px]
-              transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0
+              w-full px-4 py-2.5 text-sm border rounded-lg resize-y min-h-[140px]
+              transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
               ${questionError || error
                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                 : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
               }
-              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+              ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}
             `}
-            aria-invalid={questionError || error ? 'true' : 'false'}
+            aria-invalid={!!questionError || !!error}
             aria-describedby={questionError ? 'legal-question-error' : error ? 'legal-question-external-error' : 'legal-question-hint'}
-            aria-errormessage={questionError ? 'legal-question-error' : error ? 'legal-question-external-error' : undefined}
             aria-required="true"
-            disabled={isLoading}
+            disabled={isDisabled}
             maxLength={5000}
           />
           <div className="absolute bottom-2 right-2 text-xs text-gray-400" aria-hidden="true">
@@ -84,7 +94,7 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
           </div>
         </div>
         <p id="legal-question-hint" className="mt-1.5 text-sm text-gray-500" role="status">
-          Be specific about your location and situation for better results
+          Be specific about your location and situation for better results. Press Ctrl+Enter to submit.
         </p>
         {questionError && (
           <p id="legal-question-error" className="mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
@@ -101,13 +111,13 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
       <div>
         <Select
           id="jurisdiction"
-          label="Jurisdiction (Recommended for Accuracy)"
+          label="Jurisdiction"
           value={jurisdiction}
           onChange={(e) => setJurisdiction(e.target.value)}
           options={jurisdictions}
-          placeholder="Select your jurisdiction for more accurate information"
-          hint="Legal information varies significantly by location. Select your state or country, or leave as 'Auto-detect' to infer from your question."
-          disabled={isLoading}
+          placeholder="Auto-detect from question"
+          hint="Legal information varies significantly by location. Select your state or country for more accurate information."
+          disabled={isDisabled}
         >
           <option value="">Auto-detect from question</option>
         </Select>
@@ -142,27 +152,21 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
               placeholder="Any relevant dates, documents received, previous correspondence, or other details that might help"
               rows={3}
               hint="This helps provide more tailored information. Do not include sensitive personal information."
-              disabled={isLoading}
+              disabled={isDisabled}
               maxLength={2000}
             />
           </div>
         )}
       </details>
 
-      {error && (
-        <div role="alert" aria-live="assertive" className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-          {error}
-        </div>
-      )}
-
       <div className="flex items-center gap-4 pt-2 flex-wrap">
         <PrimaryButton
           type="submit"
-          disabled={isLoading || !question.trim()}
-          aria-busy={isLoading}
+          disabled={isDisabled || !question.trim()}
+          aria-busy={isDisabled}
           className="w-full sm:w-auto"
         >
-          {isLoading ? (
+          {isDisabled ? (
             <span className="flex items-center gap-2">
               <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -174,11 +178,11 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
             'Get Legal Information'
           )}
         </PrimaryButton>
-        
+
         <Button
           type="button"
           variant="secondary"
-          disabled={isLoading}
+          disabled={isDisabled}
           className="w-full sm:w-auto"
           onClick={() => {
             setQuestion('');
@@ -191,10 +195,28 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
         >
           Clear Form
         </Button>
-        
-        <VisuallyHidden aria-live="polite">
-          {isLoading ? 'Analyzing your legal question, please wait' : 'Ready to submit'}
-        </VisuallyHidden>
+
+        <span className="sr-only" aria-live="polite">
+          {isDisabled ? 'Analyzing your legal question, please wait' : 'Ready to submit'}
+        </span>
+      </div>
+
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">Example questions</h3>
+        <ul className="space-y-1.5">
+          <li className="text-sm text-gray-600">
+            • "Describe your legal situation in plain language with your location."
+          </li>
+          <li className="text-sm text-gray-600">
+            • "I received a notice from my employer and need guidance."
+          </li>
+          <li className="text-sm text-gray-600">
+            • "What are my rights regarding a housing dispute?"
+          </li>
+        </ul>
+        <p className="mt-2 text-xs text-gray-500">
+          These are general examples — not legal advice. For specific situations, consult an attorney.
+        </p>
       </div>
     </form>
   );

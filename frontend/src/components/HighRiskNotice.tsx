@@ -40,7 +40,7 @@ export function HighRiskNotice({
     <div
       role="alert"
       aria-live="assertive"
-      className={`${config.bg} border ${config.border} rounded-lg p-4 md:p-6 ${dismissible ? 'pr-12' : ''} relative`}
+      className={`${config.bg} border ${config.border} rounded-xl p-5 md:p-6 ${dismissible ? 'pr-12' : ''} relative`}
     >
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 mt-0.5" aria-hidden="true">
@@ -65,7 +65,7 @@ export function HighRiskNotice({
             {config.description}
           </p>
           
-          <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg">
+            <div className="mt-4 p-4 bg-white border border-gray-200 rounded-xl">
             <h4 className="text-sm font-medium text-gray-900 mb-1">Recommended Action</h4>
             <p className="text-sm text-gray-700">{guidance}</p>
           </div>
@@ -75,7 +75,7 @@ export function HighRiskNotice({
           <button
             type="button"
             onClick={onDismiss}
-            className="flex-shrink-0 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-orange-50 focus:ring-orange-500 rounded"
+            className="flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-orange-50 focus:ring-orange-500 rounded-lg"
             aria-label="Dismiss high-risk notice"
           >
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
