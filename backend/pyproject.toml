@@ -1,0 +1,47 @@
+[project]
+name = "legalaid-ai-backend"
+version = "1.0.0"
+description = "AI-powered legal information platform backend"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.32.0",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2",
+    "python-dotenv==1.0.1",
+    "httpx==0.28.1",
+    "openai==1.40.0",
+    "anthropic==0.34.0",
+    "structlog==24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==5.0.0",
+    "httpx==0.28.1",
+    "ruff==0.6.0",
+    "mypy==1.11.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["app/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "UP", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+strict_equality = true
