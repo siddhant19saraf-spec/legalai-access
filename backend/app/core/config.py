@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Backend
     backend_host: str = Field(default="0.0.0.0", validation_alias="BACKEND_HOST")
-    backend_port: int = Field(default=8000, validation_alias="BACKEND_PORT")
+    backend_port: int = Field(default=8000, validation_alias="PORT")
     cors_origins: Union[str, List[str]] = Field(default="http://localhost:3000,http://127.0.0.1:3000", validation_alias="BACKEND_CORS_ORIGINS")
 
     # Frontend
