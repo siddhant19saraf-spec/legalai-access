@@ -40,12 +40,16 @@ app = FastAPI(
 
 
 # CORS configuration
-# CORS spec: allow_credentials=True is incompatible with allow_origins=["*"]
-has_wildcard = "*" in settings.cors_origins
+cors_origins = list(settings.cors_origins)
+if "*" not in cors_origins:
+    cors_origins.extend([
+        "https://frontend-mocha-six-92.vercel.app",
+        "https://frontend-iphg3unpy-siddhant19saraf-specs-projects.vercel.app",
+    ])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins if not has_wildcard else ["*"],
-    allow_credentials=not has_wildcard,
+    allow_origins=cors_origins,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
