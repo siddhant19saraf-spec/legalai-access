@@ -40,10 +40,12 @@ app = FastAPI(
 
 
 # CORS configuration
+# CORS spec: allow_credentials=True is incompatible with allow_origins=["*"]
+has_wildcard = "*" in settings.cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    allow_origins=settings.cors_origins if not has_wildcard else ["*"],
+    allow_credentials=not has_wildcard,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
