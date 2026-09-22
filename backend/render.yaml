@@ -14,7 +14,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: BACKEND_CORS_ORIGINS
-        value: ""
+        value: "http://localhost:3000,http://127.0.0.1:3000,https://frontend-mocha-six-92.vercel.app"
       - key: LOG_LEVEL
         value: INFO
       - key: RATE_LIMIT_REQUESTS
