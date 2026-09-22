@@ -1,0 +1,9 @@
+{
+    "serviceDetails": {
+        "runtime": "docker",
+        "env": "docker",
+        "envSpecificDetails": {
+            "dockerfilePath": "Dockerfile"
+        }
+    }
+}
