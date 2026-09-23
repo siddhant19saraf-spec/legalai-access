@@ -105,6 +105,7 @@ Implemented (not a formal WCAG certification claim):
 - Loading state announced (`aria-live`), errors use `role="alert"`, status badge updated
 - Screen-reader-only live text for submit/loading status
 - Dark-mode color variants on form surfaces
+- Respects `prefers-reduced-motion` and `prefers-contrast: high` (CSS media queries)
 - Responsive layout from ~375px to desktop
 
 **Not claimed:** WCAG 2.1 AA compliance has not been verified by a formal audit or assistive-technology testing pass.
