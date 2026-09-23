@@ -30,7 +30,7 @@ class TestAIDiagnostic:
         assert data["error_category"] in (
             None, "auth", "rate_limit_or_quota", "network",
             "not_found", "bad_request", "runtime_config", "server_error",
-            "unknown", "no_valid_key",
+            "unknown", "no_valid_key", "type_error",
         )
         assert "sk-" not in response.text
         assert "Traceback" not in response.text
@@ -41,6 +41,7 @@ class TestAIDiagnostic:
         data = response.json()
         for forbidden in ("api_key", "key", "message", "detail", "traceback"):
             assert forbidden not in data
+        assert data.get("stage") in (None, "client_init", "complete")
 
 
 class TestAPIKeyNormalization:

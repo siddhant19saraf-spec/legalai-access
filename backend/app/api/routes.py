@@ -41,6 +41,8 @@ def _categorize_llm_error(exc: Exception) -> str:
         return "not_found"
     if status == 400 or "BadRequest" in name:
         return "bad_request"
+    if name == "TypeError":
+        return "type_error"
     if isinstance(exc, RuntimeError):
         return "runtime_config"
     if status and int(status) >= 500:
@@ -48,11 +50,22 @@ def _categorize_llm_error(exc: Exception) -> str:
     return "unknown"
 
 
+def _safe_error_hint(exc: Exception) -> str | None:
+    """Short scrubbed hint for unexpected TypeErrors only. Never full messages for API errors."""
+    import re
+    if type(exc).__name__ != "TypeError":
+        return None
+    msg = str(exc)
+    msg = re.sub(r"sk-[A-Za-z0-9\-_]+", "[REDACTED]", msg)
+    msg = re.sub(r"Bearer\s+\S+", "Bearer [REDACTED]", msg)
+    return msg[:300]
+
+
 @router.get("/ai-diagnostic")
 async def ai_diagnostic():
     """Attempt one minimal completion; return provider + error category only.
 
-    Never returns API keys, raw exception messages, or stack traces.
+    Never returns API keys or stack traces. TypeError hints are scrubbed of key material.
     """
     from app.services.llm_client import get_llm_client, MockProvider, LLMMessage
 
@@ -68,7 +81,26 @@ async def ai_diagnostic():
             "error_category": "no_valid_key",
             "error_type": None,
             "status_code": None,
+            "stage": None,
+            "safe_hint": None,
         }
+
+    def _fail(exc: Exception, stage: str) -> dict:
+        return {
+            "provider": provider_name,
+            "model": provider.get_model_name(),
+            "success": False,
+            "error_category": _categorize_llm_error(exc),
+            "error_type": type(exc).__name__,
+            "status_code": getattr(exc, "status_code", None),
+            "stage": stage,
+            "safe_hint": _safe_error_hint(exc),
+        }
+
+    try:
+        provider._get_client()
+    except Exception as e:
+        return _fail(e, "client_init")
 
     try:
         resp = await provider.complete(
@@ -85,16 +117,11 @@ async def ai_diagnostic():
             "error_type": None,
             "status_code": None,
             "latency_ms": resp.latency_ms,
+            "stage": "complete",
+            "safe_hint": None,
         }
     except Exception as e:
-        return {
-            "provider": provider_name,
-            "model": provider.get_model_name(),
-            "success": False,
-            "error_category": _categorize_llm_error(e),
-            "error_type": type(e).__name__,
-            "status_code": getattr(e, "status_code", None),
-        }
+        return _fail(e, "complete")
 
 
 @router.post("/ask", response_model=AskResponse)
