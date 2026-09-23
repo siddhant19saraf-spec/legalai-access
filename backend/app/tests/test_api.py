@@ -46,6 +46,18 @@ class TestAskEndpoint:
             "question": ""
         })
         assert response.status_code == 422
+
+    async def test_too_short_question_rejected(self, client):
+        """1-2 character questions must return 422 (not 500) with a serializable body."""
+        response = await client.post("/api/v1/ask", json={
+            "question": "ab"
+        })
+        assert response.status_code == 422
+        data = response.json()
+        assert data["code"] == "VALIDATION_ERROR"
+        assert data["error"] == "Invalid request data"
+        # Response body must be valid JSON with no internal exception details
+        assert "Traceback" not in response.text
     
     async def test_question_too_long(self, client):
         response = await client.post("/api/v1/ask", json={

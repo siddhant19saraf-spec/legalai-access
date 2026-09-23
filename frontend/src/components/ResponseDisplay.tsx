@@ -207,7 +207,7 @@ function SourcesList({ sources }: { sources: Source[] }) {
                 )}
                 {source.excerpt && (
                   <p className="mt-2 text-sm text-gray-700 italic border-l-2 border-gray-200 pl-3">
-                    "{source.excerpt}"
+                    &ldquo;{source.excerpt}&rdquo;
                   </p>
                 )}
                 {source.url && (

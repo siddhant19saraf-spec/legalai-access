@@ -89,11 +89,11 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
             disabled={isDisabled}
             maxLength={5000}
           />
-          <div className="absolute bottom-2 right-2 text-xs text-gray-400" aria-hidden="true">
+          <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-300" aria-hidden="true">
             {charCount} / 5000
           </div>
         </div>
-        <p id="legal-question-hint" className="mt-1.5 text-sm text-gray-500" role="status">
+        <p id="legal-question-hint" className="mt-1.5 text-sm text-gray-500 dark:text-gray-300" role="status">
           Be specific about your location and situation for better results. Press Ctrl+Enter to submit.
         </p>
         {questionError && (
@@ -201,20 +201,20 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
         </span>
       </div>
 
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Example questions</h3>
+      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Example questions</h3>
         <ul className="space-y-1.5">
-          <li className="text-sm text-gray-600">
-            • "Describe your legal situation in plain language with your location."
+          <li className="text-sm text-gray-600 dark:text-gray-400">
+            • &ldquo;Describe your legal situation in plain language with your location.&rdquo;
           </li>
-          <li className="text-sm text-gray-600">
-            • "I received a notice from my employer and need guidance."
+          <li className="text-sm text-gray-600 dark:text-gray-400">
+            • &ldquo;I received a notice from my employer and need guidance.&rdquo;
           </li>
-          <li className="text-sm text-gray-600">
-            • "What are my rights regarding a housing dispute?"
+          <li className="text-sm text-gray-600 dark:text-gray-400">
+            • &ldquo;What are my rights regarding a housing dispute?&rdquo;
           </li>
         </ul>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           These are general examples — not legal advice. For specific situations, consult an attorney.
         </p>
       </div>

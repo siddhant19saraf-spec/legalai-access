@@ -67,12 +67,16 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.warning(f"Validation error: {exc.errors()}")
+    # exc.errors() may contain non-JSON-serializable objects (e.g. ValueError in ctx);
+    # serialize defensively so validation failures return 422, not 500.
+    import json as _json
+    details = _json.loads(_json.dumps(exc.errors(), default=str))
     return JSONResponse(
         status_code=422,
         content={
             "error": "Invalid request data",
             "code": "VALIDATION_ERROR",
-            "details": exc.errors()
+            "details": details
         }
     )
 

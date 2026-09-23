@@ -1,11 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useLegalAssistant } from '@/hooks/useLegalAssistant';
 import { QuestionInput } from '@/components/QuestionInput';
 import { ResponseDisplay } from '@/components/ResponseDisplay';
 import { PersistentDisclaimer } from '@/components/DisclaimerBanner';
-import { ErrorBoundary, ErrorFallback } from '@/components/ErrorBoundary';
 import { LoadingSkeleton, ResponseSkeleton, QuestionInputSkeleton } from '@/components/LoadingSkeleton';
 import { Button } from '@/components/AccessibleComponents';
 import { getJurisdictions, checkHealth, type JurisdictionOption } from '@/lib/api';
@@ -73,10 +72,6 @@ export default function HomePage() {
     });
   }, [response]);
 
-  const renderError = (error: Error, resetErrorBoundary: () => void) => (
-    <ErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
@@ -113,8 +108,7 @@ export default function HomePage() {
       <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8" id="main-content">
         <PersistentDisclaimer />
 
-        <ErrorBoundary fallbackRender={renderError}>
-          {(!response && !isLoading) || showNewQuestion ? (
+        {(!response && !isLoading) || showNewQuestion ? (
             <section className="space-y-8" aria-labelledby="hero-heading">
               {/* Hero Section */}
               <header className="text-center py-8">
@@ -191,7 +185,6 @@ export default function HomePage() {
               ) : null}
             </Fragment>
           )}
-        </ErrorBoundary>
 
         <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
           <div className="space-y-2">

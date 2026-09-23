@@ -71,7 +71,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="label">
+          <label htmlFor={id} className="label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             {label}
           </label>
         )}
@@ -83,7 +83,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
             ${error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
             }
             ${className}
           `}
@@ -93,12 +93,12 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
           {...props}
         />
         {hint && !error && (
-          <p id={hintId} className="hint" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-gray-500 dark:text-gray-400" role="status">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="error-text" role="alert" aria-live="polite">
+          <p id={errorId} className="error-text mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
             {error}
           </p>
         )}
@@ -121,7 +121,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="label">
+          <label htmlFor={id} className="label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             {label}
           </label>
         )}
@@ -134,7 +134,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
             ${error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
             }
             ${className}
           `}
@@ -144,12 +144,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
           {...props}
         />
         {hint && !error && (
-          <p id={hintId} className="hint" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-gray-500 dark:text-gray-400" role="status">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="error-text" role="alert" aria-live="polite">
+          <p id={errorId} className="error-text mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
             {error}
           </p>
         )}
@@ -174,7 +174,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="label">
+          <label htmlFor={id} className="label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             {label}
           </label>
         )}
@@ -183,11 +183,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           id={id}
           className={`
             w-full px-4 py-2.5 text-sm border rounded-lg appearance-none
-            bg-white cursor-pointer
+            bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-pointer
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
             ${error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
             }
             ${className}
           `}
@@ -208,12 +208,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           ))}
         </select>
         {hint && !error && (
-          <p id={hintId} className="hint" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-gray-500 dark:text-gray-400" role="status">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="error-text" role="alert" aria-live="polite">
+          <p id={errorId} className="error-text mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
             {error}
           </p>
         )}
@@ -300,7 +300,7 @@ export function Card({ children, className = '', elevated = false, padding = 'p-
   padding?: string;
 }) {
   return (
-    <div className={`${padding} bg-white border border-gray-200 rounded-xl ${elevated ? 'shadow-lg' : 'shadow-sm hover:shadow-md'} transition-shadow duration-200 ${className}`}>
+    <div className={`${padding} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl ${elevated ? 'shadow-lg' : 'shadow-sm hover:shadow-md'} transition-shadow duration-200 ${className}`}>
       {children}
     </div>
   );
@@ -316,8 +316,8 @@ export function Section({ children, className = '', title, description }: {
     <section className={className} aria-labelledby={title ? 'section-title' : undefined}>
       {(title || description) && (
         <header className="mb-6">
-          {title && <h2 id="section-title" className="text-xl font-semibold text-gray-900">{title}</h2>}
-          {description && <p className="mt-1 text-sm text-gray-600">{description}</p>}
+          {title && <h2 id="section-title" className="text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>}
+          {description && <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{description}</p>}
         </header>
       )}
       {children}
