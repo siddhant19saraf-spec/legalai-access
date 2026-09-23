@@ -123,7 +123,7 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
         </Select>
       </div>
 
-      <details className="group">
+      <details className="group" open={showContext}>
         <summary
           className="cursor-pointer select-none flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
           onClick={(e) => {
