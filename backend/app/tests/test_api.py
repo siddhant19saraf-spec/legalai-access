@@ -19,6 +19,46 @@ class TestHealthEndpoint:
         assert "ai_provider" in data
 
 
+class TestAIDiagnostic:
+    async def test_diagnostic_safe_shape(self, client):
+        response = await client.get("/api/v1/ai-diagnostic")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] in ("OpenAIProvider", "AnthropicProvider", "MockProvider")
+        assert "success" in data
+        assert "error_category" in data
+        assert data["error_category"] in (
+            None, "auth", "rate_limit_or_quota", "network",
+            "not_found", "bad_request", "runtime_config", "server_error",
+            "unknown", "no_valid_key",
+        )
+        assert "sk-" not in response.text
+        assert "Traceback" not in response.text
+        assert "site-packages" not in response.text
+
+    async def test_diagnostic_exposes_no_secret_fields(self, client):
+        response = await client.get("/api/v1/ai-diagnostic")
+        data = response.json()
+        for forbidden in ("api_key", "key", "message", "detail", "traceback"):
+            assert forbidden not in data
+
+
+class TestAPIKeyNormalization:
+    def test_normalize_strips_whitespace_and_quotes(self):
+        from app.services.llm_client import normalize_api_key
+        assert normalize_api_key('  "sk-proj-abc123def456ghi789" \n') == "sk-proj-abc123def456ghi789"
+        assert normalize_api_key("'sk-proj-abc123def456ghi789'") == "sk-proj-abc123def456ghi789"
+        assert normalize_api_key("sk-proj-abc123def456ghi789\r\n") == "sk-proj-abc123def456ghi789"
+        assert normalize_api_key(None) == ""
+        assert normalize_api_key("") == ""
+        assert normalize_api_key("   ") == ""
+
+    def test_config_field_validator_strips(self):
+        from app.core.config import Settings
+        cleaned = Settings.normalize_api_key(' "sk-proj-abc123def456ghi789" ')
+        assert cleaned == "sk-proj-abc123def456ghi789"
+
+
 class TestAskEndpoint:
     async def test_valid_question(self, client):
         response = await client.post("/api/v1/ask", json={

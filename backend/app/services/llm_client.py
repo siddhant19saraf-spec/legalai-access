@@ -40,9 +40,18 @@ class LLMProvider(ABC):
         pass
 
 
+def normalize_api_key(api_key: Optional[str]) -> str:
+    if not api_key or not isinstance(api_key, str):
+        return ""
+    k = api_key.strip()
+    if len(k) >= 2 and k[0] == k[-1] and k[0] in ('"', "'"):
+        k = k[1:-1].strip()
+    return k.strip('"').strip("'").strip()
+
+
 class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
-        self.api_key = api_key
+        self.api_key = normalize_api_key(api_key)
         self.model = model
         self._client = None
 
@@ -104,7 +113,7 @@ class OpenAIProvider(LLMProvider):
 
 class AnthropicProvider(LLMProvider):
     def __init__(self, api_key: str, model: str = "claude-3-haiku-20240307"):
-        self.api_key = api_key
+        self.api_key = normalize_api_key(api_key)
         self.model = model
         self._client = None
 
@@ -244,14 +253,12 @@ class LLMClient:
             self.provider = self._create_default_provider()
 
     def _create_default_provider(self) -> LLMProvider:
-        # Check for valid API keys (not test placeholders)
-        openai_key = settings.openai_api_key
-        anthropic_key = settings.anthropic_api_key
-        
-        # Check if keys are valid (not test placeholders)
-        is_valid_openai = openai_key and not openai_key.startswith("test-") and len(openai_key) > 20
-        is_valid_anthropic = anthropic_key and not anthropic_key.startswith("test-") and len(anthropic_key) > 20
-        
+        openai_key = normalize_api_key(settings.openai_api_key)
+        anthropic_key = normalize_api_key(settings.anthropic_api_key)
+
+        is_valid_openai = bool(openai_key) and not openai_key.startswith("test-") and len(openai_key) > 20
+        is_valid_anthropic = bool(anthropic_key) and not anthropic_key.startswith("test-") and len(anthropic_key) > 20
+
         if is_valid_openai:
             return OpenAIProvider(openai_key, settings.openai_model)
         elif is_valid_anthropic:

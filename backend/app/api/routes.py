@@ -28,6 +28,75 @@ async def health_check():
     )
 
 
+def _categorize_llm_error(exc: Exception) -> str:
+    name = type(exc).__name__
+    status = getattr(exc, "status_code", None)
+    if status in (401, 403) or "Auth" in name or "Permission" in name:
+        return "auth"
+    if status == 429 or "RateLimit" in name:
+        return "rate_limit_or_quota"
+    if "Connection" in name or "Timeout" in name or "Network" in name:
+        return "network"
+    if status == 404 or "NotFound" in name:
+        return "not_found"
+    if status == 400 or "BadRequest" in name:
+        return "bad_request"
+    if isinstance(exc, RuntimeError):
+        return "runtime_config"
+    if status and int(status) >= 500:
+        return "server_error"
+    return "unknown"
+
+
+@router.get("/ai-diagnostic")
+async def ai_diagnostic():
+    """Attempt one minimal completion; return provider + error category only.
+
+    Never returns API keys, raw exception messages, or stack traces.
+    """
+    from app.services.llm_client import get_llm_client, MockProvider, LLMMessage
+
+    client = get_llm_client()
+    provider = client.provider
+    provider_name = type(provider).__name__
+
+    if isinstance(provider, MockProvider):
+        return {
+            "provider": provider_name,
+            "model": provider.get_model_name(),
+            "success": False,
+            "error_category": "no_valid_key",
+            "error_type": None,
+            "status_code": None,
+        }
+
+    try:
+        resp = await provider.complete(
+            messages=[LLMMessage(role="user", content='Reply with only valid JSON: {"ok":true}')],
+            temperature=0.0,
+            max_tokens=32,
+            response_format={"type": "json_object"},
+        )
+        return {
+            "provider": provider_name,
+            "model": provider.get_model_name(),
+            "success": True,
+            "error_category": None,
+            "error_type": None,
+            "status_code": None,
+            "latency_ms": resp.latency_ms,
+        }
+    except Exception as e:
+        return {
+            "provider": provider_name,
+            "model": provider.get_model_name(),
+            "success": False,
+            "error_category": _categorize_llm_error(e),
+            "error_type": type(e).__name__,
+            "status_code": getattr(e, "status_code", None),
+        }
+
+
 @router.post("/ask", response_model=AskResponse)
 async def ask_legal_question(request: AskRequest):
     """
