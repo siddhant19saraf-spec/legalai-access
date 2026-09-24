@@ -24,7 +24,7 @@ class TestAIDiagnostic:
         response = await client.get("/api/v1/ai-diagnostic")
         assert response.status_code == 200
         data = response.json()
-        assert data["provider"] in ("OpenAIProvider", "AnthropicProvider", "MockProvider")
+        assert data["provider"] in ("OpenAIProvider", "AnthropicProvider", "MockProvider", "TestProvider")
         assert "success" in data
         assert "error_category" in data
         assert data["error_category"] in (
@@ -41,7 +41,7 @@ class TestAIDiagnostic:
         data = response.json()
         for forbidden in ("api_key", "key", "message", "detail", "traceback"):
             assert forbidden not in data
-        assert data.get("stage") in (None, "client_init", "complete")
+        assert data.get("stage") in (None, "client_init", "complete", "local_provider")
 
 
 class TestAPIKeyNormalization:

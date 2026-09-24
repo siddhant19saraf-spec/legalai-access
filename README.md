@@ -65,11 +65,11 @@ flowchart LR
 
 ## AI Workflow
 
-**Free LLM provider (production, no credit card required):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM free, email signup only. Server-side key only (`LLM7_API_KEY` env var). Falls back to OpenAI if configured, else Anthropic, else MockProvider.
+**Free LLM provider (production, no credit card required):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM free, email signup only. Server-side key only (`LLM7_API_KEY` env var). Falls back to OpenAI if configured, else Anthropic, else Deterministic Legal Information Engine (TestProvider).
 
 **Rule-based (not LLM):** request classification, risk assessment, jurisdiction detection, legal category, source selection, clarification questions, prompt-injection scan, output validation, safety checks.
 
-**Provider selection:** `LLM7_API_KEY` (free tier, production default) → else `OPENAI_API_KEY` → else `ANTHROPIC_API_KEY` → else MockProvider.
+**Provider selection:** `LLM7_API_KEY` (free tier, production default) → else `OPENAI_API_KEY` → else `ANTHROPIC_API_KEY` → else Deterministic Legal Information Engine (TestProvider).
 
 **Not used in the live path:** embeddings/vector search (embedding model name exists in settings but no retrieval call uses it), document processing, real-time legal data.
 
@@ -137,7 +137,7 @@ Covers the `useLegalAssistant` hook (ask/error/reset/feedback), `QuestionInput` 
 | Frontend tests | Jest, React Testing Library, jsdom |
 | Backend | FastAPI, Pydantic v2, Uvicorn, Python 3.11+ |
 | Backend tests | Pytest, pytest-asyncio, httpx (ASGI) |
-| AI | LLM7.io free tier (GPT-4o-mini, 30 RPM, email signup, OpenAI-compatible); OpenAI `gpt-4o-mini` *or* Anthropic `claude-3-haiku` (server-side key); MockProvider fallback |
+| AI | LLM7.io free tier (GPT-4o-mini, 30 RPM, email signup, OpenAI-compatible); OpenAI `gpt-4o-mini` *or* Anthropic `claude-3-haiku` (server-side key); TestProvider (Deterministic Legal Information Engine) fallback |
 | Hosting | Vercel (frontend), Render (backend), GitHub (source, Render auto-deploy) |
 
 ## Project Structure

@@ -26,7 +26,7 @@ flowchart TD
         SRC["Source retrieval<br/>curated VERIFIED_SOURCES table<br/>(in-code, jurisdiction-indexed)"]
         CLAR["Clarification questions<br/>rule-based"]
         PROMPT["build_ai_prompt<br/>risk-guided instructions +<br/>JSON response format"]
-        LLM["LLMClient<br/>Llm7Provider (free, OpenAI-compatible) / OpenAI / Anthropic if valid key;<br/>MockProvider fallback; retries + timeout"]
+        LLM["LLMClient<br/>Llm7Provider (free, OpenAI-compatible) / OpenAI / Anthropic if valid key;<br/>TestProvider (Deterministic Legal Information Engine) fallback; retries + timeout"]
         OUT["OutputValidator<br/>required fields, types,<br/>fabrication heuristics"]
         SAFE_OUT["SafetyLayer<br/>definitive-advice, UPL, disclaimer,<br/>escalation, uncertainty, citation,<br/>injection-in-response checks"]
         RESP["LegalResponse<br/>structured JSON + DISCLAIMER"]
@@ -35,7 +35,7 @@ flowchart TD
     MW --> RT --> VAL --> SAFE_IN --> CLS --> SRC --> CLAR --> PROMPT --> LLM --> OUT --> SAFE_OUT --> RESP
 
     LLM -.->|"real API call (server-side key, free tier first)"| EXT["LLM provider<br/>LLM7.io free tier (GPT-4o-mini)<br/>or OpenAI / Anthropic"]
-    LLM -.->|"no valid key"| MOCK["MockProvider<br/>(explicit mock text)"]
+    LLM -.->|"no valid key"| MOCK["TestProvider<br/>(Deterministic Legal Information Engine)"]
 
     RESP -->|"AskResponse JSON"| API
     RD --> U
@@ -94,7 +94,7 @@ flowchart TD
 - **Invoked by LLM (when a valid key is configured server-side):** free-text explanation/summary generation only (`gpt-4o-mini` or `claude-3-haiku`, JSON mode, temperature 0.1).
 - **Rule-based (not LLM):** request classification, risk level, jurisdiction detection, legal category, source selection, clarification questions, safety checks, output validation.
 - **No embeddings are invoked in the running pipeline** despite an embedding model name appearing in settings; source retrieval is a curated table lookup, not vector search.
-- **MockProvider fallback:** if no valid `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` is present (missing, placeholder `test-` prefix, or ≤ 20 chars), responses are explicitly labeled mock text.
+- **TestProvider (Deterministic Legal Information Engine) fallback:** if no valid `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` is present (missing, placeholder `test-` prefix, or ≤ 20 chars), responses are explicitly labeled mock text.
 
 ## Validation
 

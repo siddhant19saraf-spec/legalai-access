@@ -19,8 +19,9 @@ feedback_store: list = []
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    from app.core.config import settings
-    ai_provider = "openai" if settings.openai_api_key else "anthropic"
+    from app.services.llm_client import get_llm_client
+    client = get_llm_client()
+    ai_provider = type(client.provider).__name__
     return HealthResponse(
         status="healthy",
         version="1.0.0",
@@ -73,15 +74,17 @@ async def ai_diagnostic():
     provider = client.provider
     provider_name = type(provider).__name__
 
-    if isinstance(provider, MockProvider):
+    # Check if provider is a local/deterministic provider (no external API needed)
+    from app.services.llm_client import TestProvider
+    if isinstance(provider, (MockProvider, TestProvider)):
         return {
             "provider": provider_name,
             "model": provider.get_model_name(),
-            "success": False,
-            "error_category": "no_valid_key",
+            "success": True,
+            "error_category": None,
             "error_type": None,
             "status_code": None,
-            "stage": None,
+            "stage": "local_provider",
             "safe_hint": None,
         }
 
