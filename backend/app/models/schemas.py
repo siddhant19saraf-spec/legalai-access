@@ -77,6 +77,37 @@ class ClarificationQuestion(BaseModel):
     required: bool = False
 
 
+class CoverageLevel(str, Enum):
+    HIGH = "high"
+    MODERATE = "moderate"
+    LIMITED = "limited"
+
+
+class QuestionQuality(BaseModel):
+    score: int = Field(ge=0, le=100)
+    level: str = "needs_more_context"
+    missing_information: List[str] = []
+    is_complete: bool = False
+
+
+class TerminologyExplanation(BaseModel):
+    term: str
+    explanation: str
+    category: str = "general"
+
+
+class DocumentChecklistItem(BaseModel):
+    item: str
+    category: str
+    relevant: bool = True
+
+
+class FollowUpSuggestion(BaseModel):
+    question: str
+    reason: str
+    category: str = "general"
+
+
 class LegalResponse(BaseModel):
     request_type: RequestType
     risk_level: RiskLevel
@@ -91,6 +122,14 @@ class LegalResponse(BaseModel):
     uncertainty_notes: List[str] = []
     disclaimer: str
     generated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Competition-quality additions
+    question_quality: Optional[QuestionQuality] = None
+    information_coverage: Optional[CoverageLevel] = None
+    coverage_reason: Optional[str] = None
+    terminology_explanations: List[TerminologyExplanation] = []
+    document_checklist: List[DocumentChecklistItem] = []
+    follow_up_suggestions: List[FollowUpSuggestion] = []
+    provider_status: Optional[str] = None
 
 
 class AskRequest(BaseModel):

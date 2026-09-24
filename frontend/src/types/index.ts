@@ -62,6 +62,33 @@ export interface ClarificationQuestion {
   required: boolean;
 }
 
+export interface TerminologyExplanation {
+  term: string;
+  explanation: string;
+  category: string;
+}
+
+export interface DocumentChecklistItem {
+  item: string;
+  category: string;
+  relevant: boolean;
+}
+
+export interface FollowUpSuggestion {
+  question: string;
+  reason: string;
+  category: string;
+}
+
+export interface QuestionQuality {
+  score: number;
+  level: string;
+  missing_information: string[];
+  is_complete: boolean;
+}
+
+export type CoverageLevel = 'high' | 'moderate' | 'limited';
+
 export interface LegalResponse {
   request_type: RequestType;
   risk_level: RiskLevel;
@@ -76,6 +103,14 @@ export interface LegalResponse {
   uncertainty_notes: string[];
   disclaimer: string;
   generated_at: string;
+  // Competition-quality additions
+  question_quality?: QuestionQuality;
+  information_coverage?: CoverageLevel;
+  coverage_reason?: string;
+  terminology_explanations: TerminologyExplanation[];
+  document_checklist: DocumentChecklistItem[];
+  follow_up_suggestions: FollowUpSuggestion[];
+  provider_status?: string;
 }
 
 export interface AskRequest {

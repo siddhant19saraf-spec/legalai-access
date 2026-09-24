@@ -27,15 +27,53 @@ A production web application that:
 
 ## Key Features
 
-- **Multi-step AI workflow** — classification → source retrieval → generation → output validation → safety gate
+- **Multi-step AI workflow** — classification → question quality → source retrieval → generation → output validation → safety gate → enhancements
 - **Risk-aware responses** — critical/high-risk queries get a prominent escalation notice and mandatory uncertainty notes
 - **Source transparency** — curated sources shown with citation, URL, and verification status; explicit "no verified source" state when none matches
+- **Question Quality Analysis** — scores question completeness (0-100), identifies missing information, suggests improvements without blocking users
+- **Information Coverage Assessment** — indicates High/Moderate/Limited coverage based on jurisdiction and source availability
+- **Legal Terminology Explainer** — click-to-expand definitions for legal terms appearing in responses
+- **Document Checklist** — contextual checklist of documents that may help each legal category
+- **Follow-up Suggestions** — smart context-aware follow-up questions after each response
+- **"Why This Response?"** — explains detected topic, response mode, source coverage, risk classification
+- **Response Export** — Copy to clipboard, Print, and Download JSON (includes question, sources, next steps, disclaimer)
+- **Privacy-First UX** — visible privacy notice near question input and in response area
+- **Provider Status** — clearly labels whether Deterministic Legal Information Engine or AI Provider is active
 - **Jurisdiction awareness** — US federal, CA/NY/TX, UK, Canada, Australia, EU, international (auto-detect fallback)
 - **Prompt-injection defense** — pattern scanning with risk scoring; high-risk inputs are blocked with a structured security response
 - **Responsible-AI disclaimers** — persistent banner, per-response disclaimer, footer notice
 - **Accessible interface** — labelled controls, keyboard operable, focus indicators, live regions for loading/errors (see Accessibility)
 - **Security hardening** — rate limiting, security headers, input size limits, no secrets in the frontend
-- **Tested** — 52 backend tests, 33 frontend tests, lint + type-check + production build
+- **Tested** — 92+ backend tests, 33 frontend tests, lint + type-check + production build
+
+## Competition Quality Features
+
+### Question Quality Analysis
+Every question is scored for completeness (0-100). Questions with missing jurisdiction or insufficient detail flag what information would improve the response. Users are never blocked from continuing.
+
+### Information Coverage
+After processing, the system reports whether source coverage is **High** (federal + state), **Moderate** (federal), or **Limited** (jurisdiction not yet covered). This is based on actual source availability, not AI confidence.
+
+### Legal Terminology Explainer
+When legal terms appear in responses (e.g., "eviction", "retaliation", "wrongful termination"), users can click them to see a plain-language explanation.
+
+### Document Checklist
+Each legal category (housing, employment, consumer, etc.) shows a contextual checklist of documents that may help the user gather relevant evidence.
+
+### Follow-up Suggestions
+After each response, the system offers safe, context-aware follow-up questions that can be clicked to auto-populate the question field.
+
+### "Why This Response?"
+A dedicated section explains what the system detected (topic, signals), the response mode (deterministic engine vs. AI provider), source coverage, and risk classification — without exposing hidden chain-of-thought.
+
+### Response Export
+Users can **Copy** the response text, **Print** via browser, or **Download** a structured JSON file containing the question, jurisdiction, sources, next steps, disclaimer, and metadata.
+
+### Privacy-First UX
+A persistent privacy notice reminds users not to enter sensitive personal information and clarifies that questions are not saved as a permanent legal record.
+
+### Provider Status
+A clearly labeled indicator shows whether the system is operating in **Deterministic Legal Information Mode** (no API key needed) or with an active **AI Provider**.
 
 ## User Journey
 
@@ -56,11 +94,18 @@ Full diagram and component tables: **[docs/architecture.md](docs/architecture.md
 flowchart LR
     U[User] --> F[Next.js 14 frontend<br/>Vercel]
     F -->|POST /api/v1/ask| B[FastAPI backend<br/>Render]
-    B --> S[Safety + validation<br/>prompt defense, output validator, safety layer]
-    S --> A[AI orchestration<br/>classify → retrieve → prompt → LLM → validate]
-    A --> L[LLM provider<br/>OpenAI or Anthropic<br/>server-side keys only]
-    A --> R[Curated source table<br/>in-code]
-    A --> F
+    B --> S[Input Validation<br/>Prompt Injection Defense]
+    S --> Q[Question Quality Analysis]
+    Q --> C[Classification<br/>Risk × Jurisdiction]
+    C --> R[Source Retrieval<br/>Curated Sources]
+    R --> I[Information Coverage Assessment]
+    I --> P[Provider Selection<br/>LLM7 → OpenAI → Anthropic →<br/>Deterministic Legal Engine]
+    P --> G[AI Generation<br/>or Deterministic Engine]
+    G --> V[Output Validation]
+    V --> A[Safety Check]
+    A --> M[Response Modification]
+    M --> E[Enhancements:<br/>Terminology × Doc Checklist<br/>Follow-ups × Coverage]
+    E --> F
 ```
 
 ## AI Workflow
@@ -112,12 +157,12 @@ Implemented (not a formal WCAG certification claim):
 
 ## Testing
 
-### Backend (52 tests)
+### Backend (92+ tests)
 ```bash
 cd backend
 python -m pytest -q
 ```
-Covers health, ask happy path, validation (empty/short/long/invalid jurisdiction), high-risk escalation, conversation IDs, feedback, plus AI workflow, prompt defense, safety, and output validation behavior.
+Covers health, ask happy path, validation (empty/short/long/invalid jurisdiction), high-risk escalation, conversation IDs, feedback, question quality analysis, information coverage, terminology explanations, document checklists, follow-up suggestions, provider status, security headers, rate limiting, prompt injection defense, plus AI workflow, prompt defense, safety, and output validation behavior.
 
 ### Frontend (33 tests)
 ```bash
@@ -229,7 +274,7 @@ Visit `http://localhost:3000` (UI) and `http://localhost:8000/docs` (OpenAPI).
 4. **No document upload**, no user accounts, no persistent sessions
 5. **No real-time legal data** — model training-cutoff knowledge
 6. **Mock mode** when no valid LLM key is configured (responses are labeled as mock).
-- **Free LLM provider (production default):** LLM7.io � no credit card required, email signup only, 30 RPM free tier; responses are real AI, not mock
+- **Free LLM provider (production default):** LLM7.io � no credit card required, email signup only, 30 RPM free tier; responses are real AI, not mock
 7. **Not formally audited** for WCAG 2.1 AA or independent security review
 8. Rate limit is per-instance in-memory (resets on deploy; not distributed)
 

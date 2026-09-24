@@ -72,6 +72,39 @@ export default function HomePage() {
     });
   }, [response]);
 
+  const handlePrintResponse = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleExportResponse = useCallback(() => {
+    if (!response) return;
+    const exportData = {
+      jurisdiction: response.jurisdiction,
+      summary: response.summary,
+      explanation: response.explanation,
+      risk_level: response.risk_level,
+      legal_category: response.legal_category,
+      sources: response.sources.map(s => ({
+        title: s.title,
+        jurisdiction: s.jurisdiction,
+        type: s.type,
+        url: s.url,
+      })),
+      next_steps: response.next_steps,
+      disclaimer: response.disclaimer,
+      generated_at: response.generated_at,
+      information_coverage: response.information_coverage,
+      question_quality: response.question_quality,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `legal-response-${response.jurisdiction}-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [response]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
@@ -110,7 +143,6 @@ export default function HomePage() {
 
         {(!response && !isLoading) || showNewQuestion ? (
             <section className="space-y-8" aria-labelledby="hero-heading">
-              {/* Hero Section */}
               <header className="text-center py-8">
                 <h2 id="hero-heading" className="text-3xl font-bold text-gray-900 sm:text-4xl tracking-tight">
                   Get Clear Legal Information, Tailored to You
@@ -172,7 +204,37 @@ export default function HomePage() {
                     feedbackSent={feedbackSent}
                     feedbackError={feedbackError}
                   />
-                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-center">
+                  <section aria-labelledby="export-heading" className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h3 id="export-heading" className="text-lg font-semibold text-gray-900 mb-3">Response Actions</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <Button variant="secondary" onClick={handleCopyResponse}>
+                        Copy Response
+                      </Button>
+                      <Button variant="secondary" onClick={handlePrintResponse}>
+                        Print
+                      </Button>
+                      <Button variant="secondary" onClick={handleExportResponse}>
+                        Download JSON
+                      </Button>
+                    </div>
+                  </section>
+                  <section aria-labelledby="privacy-heading" className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h3 id="privacy-heading" className="sr-only">Privacy Notice</h3>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <svg className="flex-shrink-0 mt-0.5 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-900">Privacy Notice</h4>
+                          <p className="mt-1 text-sm text-gray-600">
+                            Do not enter unnecessary sensitive personal information such as passwords, financial credentials, government ID numbers, or private medical information. Questions are not saved as a permanent legal record by this interface.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                  <div className="pt-6 border-t border-gray-200 flex justify-center">
                     <Button
                       variant="secondary"
                       onClick={handleClear}

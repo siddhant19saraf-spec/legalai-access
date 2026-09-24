@@ -39,7 +39,8 @@ from app.services.constants import (
     JURISDICTION_PATTERNS, VERIFIED_SOURCES, DISCLAIMER,
     classify_request_type, classify_legal_category, detect_jurisdiction,
     assess_risk_level, retrieve_sources, generate_clarification_questions,
-    build_ai_prompt
+    build_ai_prompt, analyze_question_quality, assess_information_coverage,
+    get_document_checklist, get_follow_up_suggestions, get_terminology_explanations,
 )
 
 logger = get_request_logger()
@@ -49,12 +50,17 @@ logger = get_request_logger()
 __all__ = [
     "process_legal_question",
     "classify_request_type",
-    "classify_legal_category", 
+    "classify_legal_category",
     "detect_jurisdiction",
     "assess_risk_level",
     "retrieve_sources",
     "generate_clarification_questions",
     "build_ai_prompt",
+    "analyze_question_quality",
+    "assess_information_coverage",
+    "get_document_checklist",
+    "get_follow_up_suggestions",
+    "get_terminology_explanations",
     "HIGH_RISK_KEYWORDS",
     "REQUEST_TYPE_PATTERNS",
     "LEGAL_CATEGORY_PATTERNS",
@@ -192,7 +198,25 @@ async def process_legal_question(
         clarification_questions = generate_clarification_questions(
             question, request_type, legal_category, jurisdiction
         )
-        
+
+        # Step 8.5: Question Quality Analysis
+        question_quality = analyze_question_quality(question, legal_category, jurisdiction)
+
+        # Step 8.6: Information Coverage Assessment
+        sources = retrieve_sources(question, jurisdiction, legal_category)
+        information_coverage, coverage_reason = assess_information_coverage(
+            question, jurisdiction, sources, legal_category
+        )
+
+        # Step 8.7: Terminology Explanations
+        terminology_explanations = get_terminology_explanations(question, legal_category)
+
+        # Step 8.8: Document Checklist
+        document_checklist = get_document_checklist(legal_category)
+
+        # Step 8.9: Follow-up Suggestions
+        follow_up_suggestions = get_follow_up_suggestions(legal_category, jurisdiction)
+
         # Add clarification questions to conversation context if any
         if clarification_questions:
             for cq in clarification_questions:
@@ -302,6 +326,13 @@ async def process_legal_question(
             escalation_guidance=escalation_guidance,
             uncertainty_notes=ai_result.get("uncertainty_notes", []),
             disclaimer=DISCLAIMER,
+            question_quality=question_quality,
+            information_coverage=information_coverage,
+            coverage_reason=coverage_reason,
+            terminology_explanations=terminology_explanations,
+            document_checklist=document_checklist,
+            follow_up_suggestions=follow_up_suggestions,
+            provider_status=type(_llm_client.provider).__name__,
         )
         
         # Step 11: Safety Check
@@ -393,6 +424,7 @@ def _create_fallback_response(
 ) -> LegalResponse:
     """Create a fallback response"""
     from app.services.safety import SafetyModificator
+    from app.models.schemas import CoverageLevel
     fallback_text = SafetyModificator.apply_fallback(
         "", risk_level, jurisdiction, reason
     )
@@ -410,6 +442,9 @@ def _create_fallback_response(
         escalation_guidance=response.escalation_guidance,
         uncertainty_notes=response.uncertainty_notes + ["Fallback response used due to safety/validation issue"],
         disclaimer=DISCLAIMER,
+        information_coverage=CoverageLevel.LIMITED,
+        coverage_reason="Fallback response used due to safety/validation issue",
+        provider_status=type(_llm_client.provider).__name__,
     )
 
 
@@ -420,7 +455,7 @@ def _create_blocked_response(
 ) -> LegalResponse:
     """Create a response for blocked requests"""
     from app.services.ai_workflow import DISCLAIMER
-    from app.models.schemas import RiskLevel, RequestType, LegalCategory
+    from app.models.schemas import RiskLevel, RequestType, LegalCategory, CoverageLevel
     
     return LegalResponse(
         request_type=RequestType.UNSUPPORTED,
@@ -439,6 +474,8 @@ def _create_blocked_response(
         escalation_guidance=None,
         uncertainty_notes=["Request blocked by security policy"],
         disclaimer=DISCLAIMER,
+        information_coverage=CoverageLevel.LIMITED,
+        coverage_reason="Request blocked by security policy",
     )
 
 
@@ -449,7 +486,7 @@ def _create_error_response(
 ) -> LegalResponse:
     """Create an error response"""
     from app.services.ai_workflow import DISCLAIMER
-    from app.models.schemas import RiskLevel, RequestType, LegalCategory
+    from app.models.schemas import RiskLevel, RequestType, LegalCategory, CoverageLevel
     
     return LegalResponse(
         request_type=RequestType.UNSUPPORTED,
@@ -467,6 +504,8 @@ def _create_error_response(
         escalation_guidance=None,
         uncertainty_notes=[f"Processing error: {error}"],
         disclaimer=DISCLAIMER,
+        information_coverage=CoverageLevel.LIMITED,
+        coverage_reason="Processing error",
     )
 
 

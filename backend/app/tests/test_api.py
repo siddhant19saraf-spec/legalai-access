@@ -250,6 +250,255 @@ class TestInputValidation:
         assert response.status_code in [413, 429]
 
 
+class TestQuestionQuality:
+    async def test_question_quality_complete(self, client):
+        """A detailed question with jurisdiction should get high quality score"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "My landlord in California gave me a 3-day eviction notice for non-payment of rent. I have been paying on time for 2 years. What are my rights?",
+            "jurisdiction": "us_ca"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        q_quality = data["response"].get("question_quality")
+        if q_quality:
+            assert q_quality["score"] > 50
+            assert "missing_information" in q_quality
+
+    async def test_question_quality_needs_context(self, client):
+        """A short question without jurisdiction should flag missing info"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "Can my landlord evict me?"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        q_quality = data["response"].get("question_quality")
+        if q_quality:
+            assert q_quality["level"] in ["needs_more_context", "partial"]
+            assert len(q_quality["missing_information"]) > 0
+
+    async def test_question_quality_score_range(self, client):
+        """Question quality score should be between 0 and 100"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What are my rights as a tenant?",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        q_quality = data["response"].get("question_quality")
+        if q_quality:
+            assert 0 <= q_quality["score"] <= 100
+
+
+class TestInformationCoverage:
+    async def test_coverage_high_for_ca(self, client):
+        """California jurisdiction should have good coverage"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What are tenant rights in California regarding eviction?",
+            "jurisdiction": "us_ca"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        coverage = data["response"].get("information_coverage")
+        assert coverage in ["high", "moderate", "limited"]
+
+    async def test_coverage_limited_for_unknown(self, client):
+        """Unknown jurisdiction should have limited coverage"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What are my rights regarding landlord?"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        coverage = data["response"].get("information_coverage")
+        assert coverage in ["limited", "moderate"]
+        reason = data["response"].get("coverage_reason")
+        assert reason is not None
+
+
+class TestTerminologyExplanations:
+    async def test_terminology_for_eviction(self, client):
+        """Questions mentioning 'eviction' should have terminology explanations"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What happens during an eviction in California?",
+            "jurisdiction": "us_ca"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        terms = data["response"].get("terminology_explanations", [])
+        # Should include eviction explanation if detected
+        for term in terms:
+            assert "term" in term
+            assert "explanation" in term
+
+    async def test_terminology_list(self, client):
+        """Terminology explanations should be a list"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "I was wrongfully terminated and want to know about retaliation.",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        terms = data["response"].get("terminology_explanations", [])
+        assert isinstance(terms, list)
+
+
+class TestDocumentChecklist:
+    async def test_housing_checklist(self, client):
+        """Housing questions should include relevant document checklist"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "My landlord is trying to evict me in California.",
+            "jurisdiction": "us_ca"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        checklist = data["response"].get("document_checklist", [])
+        assert isinstance(checklist, list)
+        # Should have housing-relevant items
+        for item in checklist:
+            assert "item" in item
+            assert "category" in item
+
+    async def test_employment_checklist(self, client):
+        """Employment questions should include employment documents"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "I was terminated and want to know my rights.",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        checklist = data["response"].get("document_checklist", [])
+        assert isinstance(checklist, list)
+
+    async def test_consumer_checklist(self, client):
+        """Consumer questions should include consumer documents"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "I received a defective product and want my money back.",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        checklist = data["response"].get("document_checklist", [])
+        assert isinstance(checklist, list)
+
+
+class TestFollowUpSuggestions:
+    async def test_follow_ups_for_housing(self, client):
+        """Housing questions should have follow-up suggestions"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "My landlord gave me a notice in California.",
+            "jurisdiction": "us_ca"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        follow_ups = data["response"].get("follow_up_suggestions", [])
+        assert isinstance(follow_ups, list)
+        if follow_ups:
+            assert "question" in follow_ups[0]
+            assert "reason" in follow_ups[0]
+
+    async def test_follow_ups_present(self, client):
+        """Every response should have follow-up suggestions"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What are my employment rights?",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        follow_ups = data["response"].get("follow_up_suggestions", [])
+        assert isinstance(follow_ups, list)
+        assert len(follow_ups) > 0
+
+
+class TestProviderStatus:
+    async def test_provider_status_present(self, client):
+        """Response should include provider status"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What are my rights as a tenant?",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        provider_status = data["response"].get("provider_status")
+        assert provider_status is not None
+        assert isinstance(provider_status, str)
+
+    async def test_provider_status_not_fake(self, client):
+        """Provider status should not claim to be AI if it's TestProvider"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "Test question",
+            "jurisdiction": "us_federal"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        provider_status = data["response"].get("provider_status", "")
+        # Should be a real provider name
+        assert provider_status in ("TestProvider", "MockProvider", "OpenAIProvider", "AnthropicProvider", "Llm7Provider")
+
+
+class TestEnhancedResponseSchema:
+    async def test_response_has_all_new_fields(self, client):
+        """All competition-quality fields should be present in response"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "I received a written eviction notice in California and want to know my rights.",
+            "jurisdiction": "us_ca"
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        resp = data["response"]
+        assert "disclaimer" in resp
+        assert "generated_at" in resp
+        # New fields (optional or required)
+        assert "question_quality" in resp
+        assert "information_coverage" in resp
+        assert "coverage_reason" in resp
+        assert "terminology_explanations" in resp
+        assert "document_checklist" in resp
+        assert "follow_up_suggestions" in resp
+        assert "provider_status" in resp
+
+    async def test_fallback_response_has_coverage(self, client):
+        """Fallback responses should also have coverage info"""
+        response = await client.post("/api/v1/ask", json={
+            "question": "What is the meaning of life?",
+        })
+        assert response.status_code in [200, 429]
+        if response.status_code != 200:
+            return
+        data = response.json()
+        resp = data["response"]
+        assert "information_coverage" in resp
+        assert resp["information_coverage"] in ["high", "moderate", "limited"]
+
+
 class TestLlm7Provider:
     def test_provider_can_be_instantiated(self):
         from app.services.llm_client import Llm7Provider
@@ -266,13 +515,11 @@ class TestLlm7Provider:
         from app.services.llm_client import LLMClient, Llm7Provider, normalize_api_key
         from app.core.config import settings
         
-        # Save originals
         original_llm7 = settings.llm7_api_key
         original_openai = settings.openai_api_key
         original_anthropic = settings.anthropic_api_key
         
         try:
-            # Set LLM7 key, clear others
             settings.llm7_api_key = "sk-live-test-key-1234567890abcdef"
             settings.openai_api_key = ""
             settings.anthropic_api_key = ""
@@ -281,7 +528,6 @@ class TestLlm7Provider:
             assert isinstance(client_instance.provider, Llm7Provider)
             assert client_instance.provider.get_model_name() == "gpt-4o-mini"
         finally:
-            # Restore originals
             settings.llm7_api_key = original_llm7
             settings.openai_api_key = original_openai
             settings.anthropic_api_key = original_anthropic

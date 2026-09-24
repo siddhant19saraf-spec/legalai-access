@@ -7,7 +7,9 @@ from urllib.parse import urlparse
 
 from app.models.schemas import (
     Jurisdiction, SourceType, Source, LegalCategory, RiskLevel,
-    RequestType, ClarificationQuestion
+    RequestType, ClarificationQuestion, TerminologyExplanation,
+    DocumentChecklistItem, FollowUpSuggestion, QuestionQuality,
+    CoverageLevel
 )
 
 logger = logging.getLogger(__name__)
@@ -183,6 +185,220 @@ import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+
+# Legal terminology explanations
+LEGAL_TERMINOLOGY = {
+    "eviction": TerminologyExplanation(
+        term="Eviction",
+        explanation="A court-ordered process that removes a tenant from a rental property. The specific rules, notice periods, and procedures vary significantly by jurisdiction and reason.",
+        category="housing"
+    ),
+    "retaliation": TerminologyExplanation(
+        term="Retaliation",
+        explanation="A general legal concept describing adverse action allegedly taken in response to a protected activity (such as filing a complaint). Whether a specific situation qualifies depends on applicable law and facts.",
+        category="general"
+    ),
+    "landlord-tenant": TerminologyExplanation(
+        term="Landlord-Tenant Law",
+        explanation="The body of law governing the rights and responsibilities of property owners (landlords) and renters (tenants). It covers topics like rent, deposits, repairs, and eviction procedures.",
+        category="housing"
+    ),
+    "wrongful termination": TerminologyExplanation(
+        term="Wrongful Termination",
+        explanation="A legal concept describing termination of employment that violates statutory protections, contractual agreements, or public policy. Whether a termination qualifies depends on jurisdiction and specific circumstances.",
+        category="employment"
+    ),
+    "discrimination": TerminologyExplanation(
+        term="Discrimination",
+        explanation="A general legal concept describing unfair treatment of a person based on a protected characteristic (such as race, gender, disability, or religion). Laws vary by jurisdiction and context.",
+        category="general"
+    ),
+    "statute of limitations": TerminologyExplanation(
+        term="Statute of Limitations",
+        explanation="A law that sets the maximum time after an event within which legal proceedings may be initiated. The specific time limits vary by legal matter type and jurisdiction.",
+        category="general"
+    ),
+    "custody": TerminologyExplanation(
+        term="Custody",
+        explanation="A legal concept relating to the care and decision-making rights for a child. Legal custody and physical custody are distinct concepts, and rules vary significantly by jurisdiction.",
+        category="family"
+    ),
+    "immigration": TerminologyExplanation(
+        term="Immigration",
+        explanation="The legal process of entering and remaining in a country other than one's own. Immigration law is complex and involves federal agencies, courts, and specific procedures that vary by case type.",
+        category="immigration"
+    ),
+}
+
+# Document checklists by category
+DOCUMENT_CHECKLISTS = {
+    "housing": [
+        DocumentChecklistItem(item="Lease/rental agreement", category="housing"),
+        DocumentChecklistItem(item="Any notices received (written or electronic)", category="housing"),
+        DocumentChecklistItem(item="Communications with landlord (emails, texts, letters)", category="housing"),
+        DocumentChecklistItem(item="Payment records (receipts, bank statements)", category="housing"),
+        DocumentChecklistItem(item="Photographs of conditions (if applicable)", category="housing"),
+        DocumentChecklistItem(item="Homeowner/renter insurance policy", category="housing"),
+    ],
+    "employment": [
+        DocumentChecklistItem(item="Employment agreement or contract", category="employment"),
+        DocumentChecklistItem(item="Offer letter or job description", category="employment"),
+        DocumentChecklistItem(item="Relevant communications (emails, memos)", category="employment"),
+        DocumentChecklistItem(item="Payslips or payroll records", category="employment"),
+        DocumentChecklistItem(item="Workplace policies or employee handbook", category="employment"),
+        DocumentChecklistItem(item="Time records or schedules", category="employment"),
+    ],
+    "consumer": [
+        DocumentChecklistItem(item="Receipt or invoice", category="consumer"),
+        DocumentChecklistItem(item="Warranty or guarantee documentation", category="consumer"),
+        DocumentChecklistItem(item="Correspondence with seller/lender", category="consumer"),
+        DocumentChecklistItem(item="Photographs of product/condition", category="consumer"),
+        DocumentChecklistItem(item="Credit report or account statements", category="consumer"),
+    ],
+    "family": [
+        DocumentChecklistItem(item="Marriage or divorce decree", category="family"),
+        DocumentChecklistItem(item="Child custody or support orders", category="family"),
+        DocumentChecklistItem(item="Financial records and assets", category="family"),
+        DocumentChecklistItem(item="Communication records with other party", category="family"),
+    ],
+    "criminal": [
+        DocumentChecklistItem(item="Any court documents or notices", category="criminal"),
+        DocumentChecklistItem(item="Arrest or charge records", category="criminal"),
+        DocumentChecklistItem(item="Communication with legal counsel", category="criminal"),
+    ],
+}
+
+# Follow-up suggestion templates
+FOLLOW_UP_TEMPLATES = {
+    "housing": [
+        FollowUpSuggestion(question="What if I received a written notice?", reason="Understanding the notice type helps clarify your rights and timeline", category="housing"),
+        FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important for any housing dispute", category="housing"),
+        FollowUpSuggestion(question="What information should I gather for a lawyer?", reason="Being organized helps legal professionals assess your situation", category="housing"),
+    ],
+    "employment": [
+        FollowUpSuggestion(question="What if I received a written notice?", reason="Understanding the notice type helps clarify your rights and timeline", category="employment"),
+        FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important for any employment dispute", category="employment"),
+        FollowUpSuggestion(question="What information should I gather for a lawyer?", reason="Being organized helps legal professionals assess your situation", category="employment"),
+    ],
+    "consumer": [
+        FollowUpSuggestion(question="What does the warranty cover?", reason="Warranty terms vary by product and seller", category="consumer"),
+        FollowUpSuggestion(question="How do I file a complaint with the agency?", reason="Government agencies often have specific complaint procedures", category="consumer"),
+    ],
+    "family": [
+        FollowUpSuggestion(question="What if I received a written notice?", reason="Understanding the notice type helps clarify your rights and timeline", category="family"),
+        FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important for any family law matter", category="family"),
+    ],
+    "criminal": [
+        FollowUpSuggestion(question="What should I do before speaking to anyone?", reason="You may want to consult with a qualified attorney first", category="criminal"),
+        FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important for any criminal matter", category="criminal"),
+    ],
+}
+
+# Question quality analysis patterns
+QUESTION_QUALITY_PATTERNS = {
+    "missing_jurisdiction": {
+        "pattern": r"^.*\b(what|how|can|should|do i|does|is it|my)\b.*$",
+        "reason": "No jurisdiction specified. Legal information varies significantly by location."
+    },
+    "missing_details": {
+        "pattern": r"^(can my|could my|should i|what if|will my|does my)\b.*\?",
+        "reason": "The question may benefit from additional context about the specific situation."
+    },
+}
+
+
+def analyze_question_quality(question: str, legal_category: LegalCategory, jurisdiction: Jurisdiction) -> QuestionQuality:
+    """Analyze whether a question contains enough information for a useful response."""
+    question_lower = question.strip().lower()
+    missing = []
+
+    # Check jurisdiction
+    if jurisdiction == Jurisdiction.UNKNOWN:
+        missing.append("jurisdiction (state/country)")
+
+    # Check if question is very short
+    words = question_lower.split()
+    if len(words) < 5:
+        missing.append("specific details about the situation")
+
+    # Check for common missing elements by category
+    if legal_category == LegalCategory.HOUSING and "eviction" in question_lower:
+        if "written" not in question_lower and "notice" not in question_lower:
+            missing.append("whether a written notice was received")
+
+    if legal_category == LegalCategory.EMPLOYMENT and "terminat" in question_lower:
+        if "employer size" not in question_lower:
+            missing.append("employer size and tenure details")
+
+    score = 100 - (len(missing) * 25)
+    level = "complete" if score >= 75 else ("partial" if score >= 50 else "needs_more_context")
+
+    return QuestionQuality(
+        score=max(score, 0),
+        level=level,
+        missing_information=missing,
+        is_complete=(score >= 75)
+    )
+
+
+def assess_information_coverage(
+    question: str,
+    jurisdiction: Jurisdiction,
+    sources: List[Source],
+    legal_category: LegalCategory
+) -> tuple[CoverageLevel, str]:
+    """Assess how much information coverage is available for a question."""
+    if jurisdiction == Jurisdiction.UNKNOWN:
+        return CoverageLevel.LIMITED, "The question does not specify a jurisdiction. Source coverage may be limited."
+
+    if not sources:
+        return CoverageLevel.LIMITED, "No verified sources are available for this topic in the detected jurisdiction."
+
+    if jurisdiction in [Jurisdiction.US_CA, Jurisdiction.US_NY, Jurisdiction.US_TX]:
+        if len(sources) >= 3:
+            return CoverageLevel.HIGH, "Good source coverage: both federal and state sources available."
+        return CoverageLevel.MODERATE, "Some source coverage available, but may be limited."
+
+    if jurisdiction == Jurisdiction.US_FEDERAL:
+        return CoverageLevel.MODERATE, "Federal source coverage available. State-specific details may be limited."
+
+    return CoverageLevel.LIMITED, "Verified curated source coverage is currently limited for this jurisdiction."
+
+
+def get_document_checklist(legal_category: LegalCategory) -> List[DocumentChecklistItem]:
+    """Get relevant document checklist items for a legal category."""
+    category_key = legal_category.value
+    if category_key in DOCUMENT_CHECKLISTS:
+        return DOCUMENT_CHECKLISTS[category_key]
+    # Generic checklist
+    return [
+        DocumentChecklistItem(item="Relevant documents related to the matter", category=category_key),
+        DocumentChecklistItem(item="Correspondence or communications", category=category_key),
+        DocumentChecklistItem(item="Records and supporting evidence", category=category_key),
+    ]
+
+
+def get_follow_up_suggestions(legal_category: LegalCategory, jurisdiction: Jurisdiction) -> List[FollowUpSuggestion]:
+    """Get context-aware follow-up question suggestions."""
+    category_key = legal_category.value
+    if category_key in FOLLOW_UP_TEMPLATES:
+        return FOLLOW_UP_TEMPLATES[category_key]
+    return [
+        FollowUpSuggestion(question="What if I received a written notice?", reason="Understanding the notice type helps clarify your rights", category="general"),
+        FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important", category="general"),
+        FollowUpSuggestion(question="What information should I gather for a lawyer?", reason="Being organized helps legal professionals assess your situation", category="general"),
+    ]
+
+
+def get_terminology_explanations(question: str, legal_category: LegalCategory) -> List[TerminologyExplanation]:
+    """Extract relevant legal terminology explanations from the question."""
+    question_lower = question.lower()
+    explanations = []
+    for term, explanation in LEGAL_TERMINOLOGY.items():
+        if term.lower() in question_lower:
+            explanations.append(explanation)
+    return explanations
+    question_lower = question.lower()
 
 def classify_request_type(question: str) -> RequestType:
     question_lower = question.lower()

@@ -1,9 +1,9 @@
 'use client';
 
-import { Fragment, useState, useCallback } from 'react';
+import { Fragment, useState, useCallback, useMemo } from 'react';
 import { Button, SecondaryButton } from './AccessibleComponents';
 import { HighRiskNotice } from './HighRiskNotice';
-import type { LegalResponse, RiskLevel, Source } from '@/types';
+import type { LegalResponse, RiskLevel, Source, CoverageLevel, TerminologyExplanation, DocumentChecklistItem, FollowUpSuggestion, QuestionQuality } from '@/types';
 
 const RISK_CONFIG: Record<RiskLevel, { bg: string; border: string; icon: string; text: string; label: string }> = {
   low: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-600', text: 'text-green-800', label: 'Low Risk' },
@@ -45,6 +45,18 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   court_rule: 'Court Rule',
   legal_aid_resource: 'Legal Aid Resource',
   unknown: 'Source',
+};
+
+const COVERAGE_CONFIG: Record<CoverageLevel, { bg: string; border: string; text: string; label: string }> = {
+  high: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-800', label: 'High Coverage' },
+  moderate: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', label: 'Moderate Coverage' },
+  limited: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', label: 'Limited Coverage' },
+};
+
+const QUALITY_CONFIG: Record<string, { bg: string; border: string; text: string; label: string }> = {
+  complete: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-800', label: 'Good' },
+  partial: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', label: 'Partial' },
+  needs_more_context: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', label: 'Needs More Context' },
 };
 
 function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
@@ -115,11 +127,105 @@ function AnswerSection({ response }: { response: LegalResponse }) {
   );
 }
 
+// NEW: Question Quality Check Section
+function QuestionQualitySection({ quality }: { quality: QuestionQuality | undefined }) {
+  if (!quality) return null;
+
+  const config = QUALITY_CONFIG[quality.level] || QUALITY_CONFIG.needs_more_context;
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      <SectionHeader number="2" title="Question Quality Check" />
+      <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border ${config.bg} ${config.border}`} role="status">
+        <span className={`font-semibold ${config.text}`}>{config.label}</span>
+        <span className="ml-2 text-sm text-gray-600">({quality.score}/100)</span>
+      </div>
+      {quality.missing_information.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Useful details that could improve the response:</h4>
+          <ul className="space-y-1" role="list">
+            {quality.missing_information.map((item, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
+                <svg className="flex-shrink-0 mt-0.5 h-4 w-4 text-orange-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="text-xs text-gray-500">You can still continue with your question even if more context would help.</p>
+    </div>
+  );
+}
+
+// NEW: Information Coverage Section
+function InformationCoverageSection({ coverage, reason }: { coverage: CoverageLevel | undefined; reason?: string }) {
+  if (!coverage) return null;
+
+  const config = COVERAGE_CONFIG[coverage];
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      <SectionHeader number="3" title="Information Coverage" />
+      <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border ${config.bg} ${config.border}`} role="status">
+        <span className={`font-semibold ${config.text}`}>{config.label}</span>
+      </div>
+      {reason && (
+        <p className="text-sm text-gray-600">{reason}</p>
+      )}
+    </div>
+  );
+}
+
+// NEW: Why This Response? Section
+function WhyThisResponseSection({ response }: { response: LegalResponse }) {
+  return (
+    <div className="space-y-4 animate-slide-up">
+      <SectionHeader number="4" title="Why This Response?" />
+      <div className="space-y-2 text-sm text-gray-700">
+        <div className="flex items-start gap-2">
+          <span className="flex-shrink-0 font-medium text-blue-600">Detected topic:</span>
+          <span>{response.legal_category.replace('_', ' ').toUpperCase()}</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <span className="flex-shrink-0 font-medium text-blue-600">Response mode:</span>
+          <span>
+            {response.provider_status === 'TestProvider' || response.provider_status === 'MockProvider'
+              ? 'Deterministic Legal Information Mode'
+              : `AI Provider Active (${response.provider_status})`}
+          </span>
+        </div>
+        <div className="flex items-start gap-2">
+          <span className="flex-shrink-0 font-medium text-blue-600">Source coverage:</span>
+          <span>
+            {response.information_coverage === 'high' && 'US Federal + Jurisdiction-specific'}
+            {response.information_coverage === 'moderate' && 'Federal source coverage available'}
+            {response.information_coverage === 'limited' && 'Coverage may be limited for this jurisdiction'}
+            {!response.information_coverage && 'Not specified'}
+          </span>
+        </div>
+        <div className="flex items-start gap-2">
+          <span className="flex-shrink-0 font-medium text-blue-600">Risk classification:</span>
+          <span>{response.risk_level.replace('_', ' ').toUpperCase()}</span>
+        </div>
+        {response.sources.length > 0 && (
+          <div className="flex items-start gap-2">
+            <span className="flex-shrink-0 font-medium text-blue-600">Sources used:</span>
+            <span>{response.sources.length} verified source{response.sources.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KeyPointsSection({ steps }: { steps: string[] }) {
   if (!steps.length) return null;
   return (
     <div className="space-y-3 animate-slide-up">
-      <SectionHeader number="2" title="Key Points" />
+      <SectionHeader number="5" title="Key Points" />
       <ul className="space-y-2" role="list">
         {steps.map((step, index) => (
           <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
@@ -138,7 +244,7 @@ function RiskSection({ riskLevel }: { riskLevel: RiskLevel }) {
   const config = RISK_CONFIG[riskLevel];
   return (
     <div className="animate-slide-up">
-      <SectionHeader number="3" title="Risk Level" />
+      <SectionHeader number="6" title="Risk Level" />
       <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border ${config.bg} ${config.border}`} role="status">
         <svg className={`w-5 h-5 mr-2 ${config.icon}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -152,7 +258,7 @@ function RiskSection({ riskLevel }: { riskLevel: RiskLevel }) {
 function JurisdictionSection({ jurisdiction }: { jurisdiction: string }) {
   return (
     <div className="animate-slide-up">
-      <SectionHeader number="4" title="Jurisdiction" />
+      <SectionHeader number="7" title="Jurisdiction" />
       <div className="inline-flex items-center px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
         <span className="text-sm font-medium text-gray-700">{jurisdiction.replace('_', ' ').toUpperCase()}</span>
       </div>
@@ -167,7 +273,7 @@ function SourcesList({ sources }: { sources: Source[] }) {
   if (!sources.length) {
     return (
       <div className="animate-slide-up">
-        <SectionHeader number="5" title="Sources" />
+        <SectionHeader number="8" title="Sources" />
         <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
           <p className="text-sm text-gray-600">No verified source was returned for this response.</p>
           <p className="mt-1 text-xs text-gray-500">The response is based on general legal knowledge.</p>
@@ -178,7 +284,7 @@ function SourcesList({ sources }: { sources: Source[] }) {
 
   return (
     <div className="space-y-3 animate-slide-up">
-      <SectionHeader number="5" title="Sources" />
+      <SectionHeader number="8" title="Sources" />
       <div className="space-y-3" role="list">
         {sources.map((source, index) => (
           <article
@@ -233,21 +339,183 @@ function SourcesList({ sources }: { sources: Source[] }) {
   );
 }
 
-function NextStepsSection({ steps }: { steps: string[] }) {
-  if (!steps.length) return null;
+// NEW: Document Checklist Section
+function DocumentChecklistSection({ items }: { items: DocumentChecklistItem[] }) {
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+
+  if (!items.length) return null;
+
+  const toggleItem = (index: number) => {
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-3 animate-slide-up">
-      <SectionHeader number="6" title="Next Steps" />
+      <SectionHeader number="9" title="Documents That May Help" />
+      <p className="text-sm text-gray-600 mb-2">Gathering these documents may help clarify your situation:</p>
+      <ul className="space-y-2" role="list">
+        {items.map((item, index) => (
+          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => toggleItem(index)}>
+            <input
+              type="checkbox"
+              checked={checkedItems.has(index)}
+              onChange={() => toggleItem(index)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              aria-label={item.item}
+            />
+            <div>
+              <p className={`text-sm ${checkedItems.has(index) ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
+                {item.item}
+              </p>
+              <p className="text-xs text-gray-500">{item.category}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// NEW: Legal Terminology Explainer Section
+function TerminologyExplainerSection({ explanations }: { explanations: TerminologyExplanation[] }) {
+  const [expandedTerms, setExpandedTerms] = useState<Set<string>>(new Set());
+
+  if (!explanations.length) return null;
+
+  const toggleTerm = (term: string) => {
+    setExpandedTerms(prev => {
+      const next = new Set(prev);
+      if (next.has(term)) {
+        next.delete(term);
+      } else {
+        next.add(term);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      <SectionHeader number="10" title="Legal Terminology" />
+      <p className="text-sm text-gray-600 mb-2">Some legal terms may appear in this response. Hover or click to understand:</p>
+      <div className="flex flex-wrap gap-2">
+        {explanations.map((item) => (
+          <button
+            key={item.term}
+            type="button"
+            onClick={() => toggleTerm(item.term)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+            aria-expanded={expandedTerms.has(item.term)}
+            aria-label={`What does ${item.term} mean?`}
+          >
+            {item.term}
+            <svg
+              className={`w-3 h-3 transition-transform ${expandedTerms.has(item.term) ? 'rotate-180' : ''}`}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        ))}
+      </div>
+      {expandedTerms.size > 0 && (
+        <div className="space-y-2 mt-3" role="list">
+          {explanations.filter(e => expandedTerms.has(e.term)).map((item) => (
+            <div key={item.term} className="p-3 bg-white border border-indigo-200 rounded-lg" role="listitem">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-indigo-900">{item.term}</h4>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  {item.category}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-700">{item.explanation}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// NEW: Enhanced Next Steps with Checkboxes
+function NextStepsSection({ steps }: { steps: string[] }) {
+  const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+
+  if (!steps.length) return null;
+
+  const toggleStep = (index: number) => {
+    setCheckedSteps(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      <SectionHeader number="11" title="Your Next Steps" />
+      <p className="text-sm text-gray-600 mb-2">These steps are informational and safe:</p>
       <ol className="space-y-2" role="list">
         {steps.map((step, index) => (
-          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium flex items-center justify-center">
-              {index + 1}
-            </span>
-            <p className="text-sm text-gray-700 mt-0.5">{step}</p>
+          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => toggleStep(index)}>
+            <input
+              type="checkbox"
+              checked={checkedSteps.has(index)}
+              onChange={() => toggleStep(index)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              aria-label={`Check step ${index + 1}: ${step}`}
+            />
+            <p className={`text-sm ${checkedSteps.has(index) ? 'text-gray-500 line-through' : 'text-gray-700'} mt-0.5`}>
+              {step}
+            </p>
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+// NEW: Follow-up Suggestions Section
+function FollowUpSection({ suggestions }: { suggestions: FollowUpSuggestion[] }) {
+  if (!suggestions.length) return null;
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      <SectionHeader number="12" title="Useful Follow-up Questions" />
+      <p className="text-sm text-gray-600 mb-2">These may help you explore further:</p>
+      <div className="space-y-2">
+        {suggestions.map((suggestion, index) => (
+          <button
+            key={index}
+            type="button"
+            className="block w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={() => {
+              const input = document.querySelector('textarea[name="question"]') as HTMLTextAreaElement;
+              if (input) {
+                input.value = suggestion.question;
+                input.focus();
+              }
+            }}
+          >
+            <p className="text-sm font-medium text-gray-900">{suggestion.question}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{suggestion.reason}</p>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -256,7 +524,7 @@ function EscalationSection({ guidance }: { guidance: string }) {
   if (!guidance) return null;
   return (
     <div className="animate-slide-up">
-      <SectionHeader number="7" title="When to Seek Professional Help" />
+      <SectionHeader number="13" title="When to Seek Professional Help" />
       <HighRiskNotice riskLevel="high" guidance={guidance} />
     </div>
   );
@@ -266,7 +534,7 @@ function UncertaintySection({ notes }: { notes: string[] }) {
   if (!notes.length) return null;
   return (
     <div className="space-y-3 animate-slide-up">
-      <SectionHeader number="8" title="Limitations & Uncertainties" />
+      <SectionHeader number="14" title="Limitations & Uncertainties" />
       <ul className="space-y-2" role="list">
         {notes.map((note, index) => (
           <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
@@ -299,18 +567,50 @@ function DisclaimerSection({ disclaimer }: { disclaimer: string }) {
   );
 }
 
+// NEW: Provider Status Indicator
+function ProviderStatus({ providerStatus }: { providerStatus?: string }) {
+  if (!providerStatus) return null;
+
+  const isLocal = providerStatus === 'TestProvider' || providerStatus === 'MockProvider';
+
+  return (
+    <div className="animate-slide-up">
+      <SectionHeader number="0" title="Legal Information Mode" />
+      <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border ${
+        isLocal
+          ? 'bg-purple-50 border-purple-200'
+          : 'bg-green-50 border-green-200'
+      }`} role="status">
+        <span className={`text-sm font-medium ${
+          isLocal ? 'text-purple-800' : 'text-green-800'
+        }`}>
+          {isLocal
+            ? 'Deterministic Legal Information Engine'
+            : `AI Provider Active: ${providerStatus}`}
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-gray-500">
+        {isLocal
+          ? 'No API key required. Responses are generated from verified legal sources.'
+          : 'External AI provider is active. Responses may include AI-generated analysis.'}
+      </p>
+    </div>
+  );
+}
+
 interface ResponseDisplayProps {
   response: LegalResponse;
   onFeedback?: (rating: number, comment?: string, issueType?: string) => void;
   feedbackSent?: boolean;
   feedbackError?: Error | null;
   onCopyResponse?: () => void;
+  onPrintResponse?: () => void;
 }
 
-export function ResponseDisplay({ 
-  response, 
-  onFeedback, 
-  feedbackSent, 
+export function ResponseDisplay({
+  response,
+  onFeedback,
+  feedbackSent,
   feedbackError,
 }: ResponseDisplayProps) {
   const [showFeedback, setShowFeedback] = useState(false);
@@ -342,6 +642,10 @@ export function ResponseDisplay({
     });
   }, [response]);
 
+  const handlePrintResponse = useCallback(() => {
+    window.print();
+  }, []);
+
   return (
     <div className="space-y-8" role="region" aria-label="Legal information response">
       <header className="space-y-4">
@@ -362,26 +666,41 @@ export function ResponseDisplay({
         </div>
       </header>
 
+      {/* Provider Status */}
+      <ProviderStatus providerStatus={response.provider_status} />
+
       {response.risk_level === 'high' || response.risk_level === 'critical' ? (
-        <HighRiskNotice 
-          riskLevel={response.risk_level as 'high' | 'critical'} 
+        <HighRiskNotice
+          riskLevel={response.risk_level as 'high' | 'critical'}
           guidance={response.escalation_guidance || 'Please consult with a qualified attorney immediately.'}
         />
       ) : null}
+
+      {/* Question Quality Check */}
+      <QuestionQualitySection quality={response.question_quality} />
+
+      {/* Information Coverage */}
+      <InformationCoverageSection coverage={response.information_coverage} reason={response.coverage_reason} />
+
+      {/* Why This Response? */}
+      <WhyThisResponseSection response={response} />
 
       <AnswerSection response={response} />
       <KeyPointsSection steps={response.next_steps} />
       <RiskSection riskLevel={response.risk_level} />
       <JurisdictionSection jurisdiction={response.jurisdiction} />
       <SourcesList sources={response.sources} />
+      <DocumentChecklistSection items={response.document_checklist} />
+      <TerminologyExplainerSection explanations={response.terminology_explanations} />
       <NextStepsSection steps={response.next_steps} />
+      <FollowUpSection suggestions={response.follow_up_suggestions} />
       <EscalationSection guidance={response.escalation_guidance || ''} />
       <UncertaintySection notes={response.uncertainty_notes} />
       <DisclaimerSection disclaimer={response.disclaimer} />
 
       <section aria-labelledby="feedback-heading" className="pt-6 border-t border-gray-200">
         <h3 id="feedback-heading" className="text-lg font-semibold text-gray-900">Was this helpful?</h3>
-        
+
         {feedbackSent ? (
           <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-green-800" role="status">
             Thank you for your feedback! It helps us improve.

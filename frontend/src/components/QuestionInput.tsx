@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, FormEvent, KeyboardEvent } from 'react';
+import { useState, useCallback, useRef, FormEvent, KeyboardEvent } from 'react';
 import { Textarea, Select, PrimaryButton, Button } from './AccessibleComponents';
 import type { JurisdictionOption } from '@/types';
 
@@ -217,6 +217,21 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           These are general examples — not legal advice. For specific situations, consult an attorney.
         </p>
+      </div>
+
+      {/* Privacy Notice */}
+      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+        <div className="flex items-start gap-3">
+          <svg className="flex-shrink-0 mt-0.5 h-5 w-5 text-amber-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <h4 className="text-sm font-semibold text-amber-800">Privacy First</h4>
+            <p className="mt-1 text-sm text-amber-700">
+              Do not enter unnecessary sensitive personal information such as passwords, financial credentials, government ID numbers, or private medical information. Questions are not saved as a permanent legal record by this interface.
+            </p>
+          </div>
+        </div>
       </div>
     </form>
   );
