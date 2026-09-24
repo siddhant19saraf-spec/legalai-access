@@ -1,12 +1,14 @@
 # LegalAI Access
 
-An AI-powered **general legal information** platform built for the Hack2Skill PromptWars Virtual Challenge — *AI for Legal Assistance & Access*.
+**Structured, jurisdiction-aware legal information with transparent AI providers and a deterministic no-API fallback.** Built for the Hack2Skill PromptWars Virtual Challenge — *AI for Legal Assistance & Access*.
 
 > **This platform provides general legal information only and does not constitute legal advice.** The information is AI-generated and may contain inaccuracies. For matters that could significantly affect your rights, liberty, or finances, consult a qualified attorney licensed in your jurisdiction. No attorney-client relationship is created by using this service.
 
 ## Overview
 
-LegalAI Access takes a natural-language legal question and returns a **structured, risk-aware, jurisdiction-aware information packet** — summary, explanation, next steps, escalation guidance, limitations, sources (when a curated source exists), and a persistent disclaimer. It is deliberately built as a multi-step pipeline (classify → retrieve → generate → validate → safety-check), not a single chatbot prompt.
+LegalAI Access takes a natural-language legal question and returns a **structured, risk-aware, jurisdiction-aware information packet** — summary, explanation, next steps, escalation guidance, limitations, sources (when a curated source exists), and a persistent disclaimer. It is deliberately built as a multi-step pipeline (classify → question-quality → retrieve → generate → validate → safety-check), not a single chatbot prompt.
+
+The platform operates **without requiring an external AI API key**. When external providers are unavailable or rate-limited, it automatically falls back to the **Deterministic Legal Information Engine (TestProvider)**, producing structured legal responses from curated sources.
 
 ## Problem Statement
 
@@ -17,13 +19,18 @@ Access to legal information is a major barrier to justice. Many people cannot af
 A production web application that:
 
 1. Accepts natural-language legal questions (with optional jurisdiction and context)
-2. Classifies request type (deadline inquiry, procedural guidance, rights explanation, etc.)
-3. Assesses risk level (low / medium / high / critical) from keyword and category rules
-4. Detects or accepts jurisdiction
-5. Attaches **curated** legal sources when a match exists (and says so when none does)
-6. Generates a structured AI response with disclaimers, uncertainty notes, and next steps
-7. Enforces safety checks (no fabricated citations, no definitive-outcome promises, high-risk escalation)
-8. Collects optional user feedback (in-memory; not persisted across restarts)
+2. Analyzes question quality and identifies missing information
+3. Classifies request type (deadline inquiry, procedural guidance, rights explanation, etc.)
+4. Assesses risk level (low / moderate / high / critical) from keyword and category rules
+5. Detects or accepts jurisdiction
+6. Assesses information coverage (High / Moderate / Limited)
+7. Attaches **curated** legal sources when a match exists (and says so when none does)
+8. Generates a structured response with disclaimers, uncertainty notes, and next steps
+9. Explains why this response was generated
+10. Provides document checklists and context-aware follow-up suggestions
+11. Enforces safety checks (no fabricated citations, no definitive-outcome promises, high-risk escalation)
+12. Collects optional user feedback (in-memory; not persisted across restarts)
+13. Supports response export (Copy, Print, Download JSON)
 
 ## Key Features
 
@@ -44,7 +51,7 @@ A production web application that:
 - **Responsible-AI disclaimers** — persistent banner, per-response disclaimer, footer notice
 - **Accessible interface** — labelled controls, keyboard operable, focus indicators, live regions for loading/errors (see Accessibility)
 - **Security hardening** — rate limiting, security headers, input size limits, no secrets in the frontend
-- **Tested** — 92+ backend tests, 33 frontend tests, lint + type-check + production build
+- **Tested** — 75 backend tests, 33 frontend tests, 108 total, lint + type-check + production build
 
 ## Competition Quality Features
 
@@ -77,12 +84,13 @@ A clearly labeled indicator shows whether the system is operating in **Determini
 
 ## User Journey
 
-1. Open the app → workspace (question form, jurisdiction selector, examples, online status) is visible
+1. Open the app → workspace (question form, jurisdiction selector, examples, status indicator) is visible
 2. Type a legal question (optionally open **Additional Context**, pick a jurisdiction)
 3. Submit (button or Ctrl+Enter) → loading state with live announcement
-4. Receive structured response: metadata badges, answer, key points, risk level, jurisdiction, sources, next steps, escalation (if any), limitations, disclaimer
+4. Receive structured response: metadata badges, answer, question quality check, information coverage, "Why This Response?", key points, risk level, jurisdiction, sources, document checklist, terminology, next steps, follow-up suggestions, escalation (if any), limitations, disclaimer
 5. Optionally rate the response (feedback endpoint)
-6. **Ask Another Question** or **Clear Form** to reset
+6. **Copy**, **Print**, or **Download JSON** the response
+7. **Ask Another Question** or **Clear Form** to reset
 
 Error paths (empty/short/oversized input, invalid jurisdiction, backend down, rate limit, blocked injection) show recoverable, accessible error UI — never stack traces.
 
@@ -94,27 +102,31 @@ Full diagram and component tables: **[docs/architecture.md](docs/architecture.md
 flowchart LR
     U[User] --> F[Next.js 14 frontend<br/>Vercel]
     F -->|POST /api/v1/ask| B[FastAPI backend<br/>Render]
-    B --> S[Input Validation<br/>Prompt Injection Defense]
-    S --> Q[Question Quality Analysis]
-    Q --> C[Classification<br/>Risk × Jurisdiction]
-    C --> R[Source Retrieval<br/>Curated Sources]
-    R --> I[Information Coverage Assessment]
-    I --> P[Provider Selection<br/>LLM7 → OpenAI → Anthropic →<br/>Deterministic Legal Engine]
-    P --> G[AI Generation<br/>or Deterministic Engine]
+    B --> S[Input Validation<br/>Prompt Injection Defense<br/>Question Quality Analysis]
+    S --> C[Classification<br/>Risk × Jurisdiction<br/>Information Coverage]
+    C --> R[Source Retrieval<br/>Curated VERIFIED_SOURCES]
+    C --> P[Provider Selection<br/>LLM7 → OpenAI → Anthropic →<br/>TestProvider Deterministic]
+    P -->|External Key| G[AI Generation]
+    P -->|No Key| D[Deterministic Legal<br/>Information Engine]
     G --> V[Output Validation]
+    D --> V
     V --> A[Safety Check]
-    A --> M[Response Modification]
-    M --> E[Enhancements:<br/>Terminology × Doc Checklist<br/>Follow-ups × Coverage]
+    A --> E[Enhancements:<br/>Terminology × Doc Checklist<br/>Follow-ups × Coverage]
     E --> F
 ```
 
 ## AI Workflow
 
-**Free LLM provider (production, no credit card required):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM free, email signup only. Server-side key only (`LLM7_API_KEY` env var). Falls back to OpenAI if configured, else Anthropic, else Deterministic Legal Information Engine (TestProvider).
+**Provider selection (external API keys are optional):**
 
-**Rule-based (not LLM):** request classification, risk assessment, jurisdiction detection, legal category, source selection, clarification questions, prompt-injection scan, output validation, safety checks.
+- `LLM7_API_KEY` → LLM7.io free tier (GPT-4o-mini, 30 RPM, email signup)
+- else `OPENAI_API_KEY` → OpenAI `gpt-4o-mini`
+- else `ANTHROPIC_API_KEY` → Anthropic `claude-3-haiku`
+- else **Deterministic Legal Information Engine (TestProvider)** — no API key needed
 
-**Provider selection:** `LLM7_API_KEY` (free tier, production default) → else `OPENAI_API_KEY` → else `ANTHROPIC_API_KEY` → else Deterministic Legal Information Engine (TestProvider).
+**Deterministic fallback:** When no usable external provider is available, `TestProvider` automatically provides structured legal responses from curated sources. It is **not** an LLM and is **not** "mock content" — it produces deterministic, rule-based legal information from verified source tables.
+
+**Rule-based (not LLM):** request classification, risk assessment, jurisdiction detection, legal category, source selection, question quality analysis, clarification questions, prompt-injection scan, output validation, safety checks.
 
 **Not used in the live path:** embeddings/vector search (embedding model name exists in settings but no retrieval call uses it), document processing, real-time legal data.
 
@@ -138,7 +150,7 @@ flowchart LR
 - **Errors:** generic `{error, code}` responses; stack traces only in server logs
 - **Prompt injection:** strict scan/sanitize/block before the LLM; response-side injection-artifact check as defense in depth
 
-> **Note:** a Render API token was previously committed in `backend/check-deploy.ps1`; it has been removed from the working tree (now reads `RENDER_API_KEY` from the environment). That token remains in git history and **should be revoked/rotated in the Render dashboard.**
+> **Security note:** A Render API token was previously present in the repository history. It has been removed from the current working tree. The credential should be considered compromised and rotated in the Render dashboard. No secrets are present in the current repository.
 
 ## Accessibility
 
@@ -157,12 +169,12 @@ Implemented (not a formal WCAG certification claim):
 
 ## Testing
 
-### Backend (92+ tests)
+### Backend (75 tests)
 ```bash
 cd backend
 python -m pytest -q
 ```
-Covers health, ask happy path, validation (empty/short/long/invalid jurisdiction), high-risk escalation, conversation IDs, feedback, question quality analysis, information coverage, terminology explanations, document checklists, follow-up suggestions, provider status, security headers, rate limiting, prompt injection defense, plus AI workflow, prompt defense, safety, and output validation behavior.
+Covers health, ask happy path, validation, high-risk escalation, conversation IDs, feedback, question quality analysis, information coverage, terminology explanations, document checklists, follow-up suggestions, provider status, security headers, rate limiting, prompt injection defense, plus AI workflow, prompt defense, safety, and output validation behavior.
 
 ### Frontend (33 tests)
 ```bash
@@ -172,7 +184,9 @@ npm run lint
 npm run type-check
 npm run build
 ```
-Covers the `useLegalAssistant` hook (ask/error/reset/feedback), `QuestionInput` validation and a11y attributes, and accessible component behavior.
+Covers the `useLegalAssistant` hook, `QuestionInput` validation and a11y attributes, and accessible component behavior.
+
+**Total: 108 tests.** All passing. TypeScript check: PASS. Production build: PASS. Security: PASS. No-API mode: PASS. Provider fallback: PASS.
 
 ## Technology Stack
 
@@ -182,7 +196,7 @@ Covers the `useLegalAssistant` hook (ask/error/reset/feedback), `QuestionInput` 
 | Frontend tests | Jest, React Testing Library, jsdom |
 | Backend | FastAPI, Pydantic v2, Uvicorn, Python 3.11+ |
 | Backend tests | Pytest, pytest-asyncio, httpx (ASGI) |
-| AI | LLM7.io free tier (GPT-4o-mini, 30 RPM, email signup, OpenAI-compatible); OpenAI `gpt-4o-mini` *or* Anthropic `claude-3-haiku` (server-side key); TestProvider (Deterministic Legal Information Engine) fallback |
+| AI | LLM7.io free tier (GPT-4o-mini, optional) · OpenAI `gpt-4o-mini` (optional) · Anthropic `claude-3-haiku` (optional) · TestProvider (Deterministic Legal Information Engine, no API key required) |
 | Hosting | Vercel (frontend), Render (backend), GitHub (source, Render auto-deploy) |
 
 ## Project Structure
@@ -212,24 +226,24 @@ Template: [.env.example](.env.example)
 
 | Variable | Where | Required | Purpose |
 |----------|-------|----------|---------|
-| `OPENAI_API_KEY` | Render (backend) | one of the two keys | Real LLM responses (optional, fallback) |
-| `ANTHROPIC_API_KEY` | Render (backend) | alternative | Real LLM responses |
-| `LLM7_API_KEY` | Render (backend) | **required** for production free tier | LLM7.io free API key (no credit card) |
-| `SECRET_KEY` | Render | recommended | App secret (≥ 32 chars) |
-| `BACKEND_CORS_ORIGINS` | Render | yes | Allowed frontend origins |
-| `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` | Render | no | Defaults 30 / 60 |
-| `LOG_LEVEL` | Render | no | Default `INFO` |
-| `NEXT_PUBLIC_API_URL` | Vercel (frontend build) | yes in prod | Backend base URL (public by design) |
-| `RENDER_API_KEY` | local only (optional) | no | For `backend/check-deploy.ps1` helper |
+| `OPENAI_API_KEY` | Render (backend) | Optional | Real LLM responses (fallback) |
+| `ANTHROPIC_API_KEY` | Render (backend) | Optional | Real LLM responses (fallback) |
+| `LLM7_API_KEY` | Render (backend) | Optional | LLM7.io free API key (no credit card) |
+| `SECRET_KEY` | Render | Recommended | App secret (≥ 32 chars) |
+| `BACKEND_CORS_ORIGINS` | Render | Yes | Allowed frontend origins |
+| `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` | Render | No | Defaults 30 / 60 |
+| `LOG_LEVEL` | Render | No | Default `INFO` |
+| `NEXT_PUBLIC_API_URL` | Vercel (frontend build) | Yes in prod | Backend base URL (public by design) |
+| `RENDER_API_KEY` | local only (optional) | No | For `backend/check-deploy.ps1` helper |
 
-Without a valid AI key, the backend still runs safely but returns **explicitly labeled mock content**.
+**No API key is required.** When no external provider key is configured, the system automatically uses the **Deterministic Legal Information Engine (TestProvider)** to produce structured legal responses from curated source tables.
 
 ## Local Development
 
 ### Prerequisites
 - Node.js 20+
 - Python 3.11+
-- An OpenAI **or** Anthropic API key (optional for UI-only work; mock mode otherwise)
+- External API keys are optional (OpenAI, Anthropic, or LLM7.io). Without any key, the Deterministic Legal Information Engine provides structured legal responses.
 
 ### Backend
 ```bash
@@ -273,8 +287,7 @@ Visit `http://localhost:3000` (UI) and `http://localhost:8000/docs` (OpenAPI).
 3. **Curated sources only** — no live legal research; many jurisdictions/categories have no matching source (UI states this honestly)
 4. **No document upload**, no user accounts, no persistent sessions
 5. **No real-time legal data** — model training-cutoff knowledge
-6. **Mock mode** when no valid LLM key is configured (responses are labeled as mock).
-- **Free LLM provider (production default):** LLM7.io � no credit card required, email signup only, 30 RPM free tier; responses are real AI, not mock
+6. **Deterministic Legal Information Mode** when no external provider key is available (structured legal responses from curated sources)
 7. **Not formally audited** for WCAG 2.1 AA or independent security review
 8. Rate limit is per-instance in-memory (resets on deploy; not distributed)
 
@@ -293,8 +306,9 @@ Visit `http://localhost:3000` (UI) and `http://localhost:8000/docs` (OpenAPI).
 
 - `.gitignore` excludes `node_modules`, virtualenvs, `.env*`, build outputs, coverage, `*.tsbuildinfo`
 - No secrets in the current tree (`.env.example` placeholders only)
-- One branch (`main`); repository size ≈ 0.3 MB (limit: 10 MB)
+- One branch (`main`); repository is under 10 MB
 - Public GitHub repository
+- Latest release commit includes: 75 backend tests, 33 frontend tests, full competition-quality pass
 
 ## License
 

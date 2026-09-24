@@ -96,7 +96,7 @@ flowchart TD
 
 ## AI Workflow (what actually invokes AI)
 
-- **Free LLM provider (production default):** LLM7.io � OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM, email signup only, no credit card required
+- **Free LLM provider (optional):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM, email signup only, no credit card required. External API keys are optional.
 - **Invoked by LLM (when a valid key is configured server-side):** free-text explanation/summary generation only (`gpt-4o-mini` or `claude-3-haiku`, JSON mode, temperature 0.1).
 - **Rule-based (not LLM):** request classification, risk level, jurisdiction detection, legal category, source selection, clarification questions, safety checks, output validation.
 - **No embeddings are invoked in the running pipeline** despite an embedding model name appearing in settings; source retrieval is a curated table lookup, not vector search.
