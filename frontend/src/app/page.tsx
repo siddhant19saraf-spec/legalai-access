@@ -119,7 +119,7 @@ export default function HomePage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">LegalAI Access</h1>
-                <p className="text-xs text-gray-500">AI-powered legal information</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Structured, jurisdiction-aware legal information — not legal advice.</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ export default function HomePage() {
                   : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-yellow-500'}`} aria-hidden="true" />
-                {healthStatus === 'healthy' ? 'Online' : healthStatus === 'unhealthy' ? 'Offline' : 'Connecting...'}
+                {healthStatus === 'healthy' ? 'Legal Information Mode' : healthStatus === 'unhealthy' ? 'Service Unavailable' : 'Connecting...'}
               </span>
             </div>
           </div>
@@ -147,8 +147,11 @@ export default function HomePage() {
                 <h2 id="hero-heading" className="text-3xl font-bold text-gray-900 sm:text-4xl tracking-tight">
                   Get Clear Legal Information, Tailored to You
                 </h2>
-                <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                <p className="mt-4 text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
                   Ask a legal question and receive structured, jurisdiction-aware guidance. This is not legal advice — consult an attorney for your specific situation.
+                </p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  Question Quality • Risk Assessment • Source Transparency • Actionable Next Steps
                 </p>
               </header>
 
@@ -250,10 +253,10 @@ export default function HomePage() {
 
         <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
           <div className="space-y-2">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               LegalAI Access — Providing structured legal information powered by AI.
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               This platform provides general legal information only, not legal advice. Consult a qualified attorney for matters affecting your rights, liberty, or finances.
             </p>
           </div>

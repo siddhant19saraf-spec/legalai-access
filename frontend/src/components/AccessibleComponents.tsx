@@ -92,8 +92,8 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
           aria-errormessage={errorId}
           {...props}
         />
-        {hint && !error && (
-          <p id={hintId} className="hint mt-1.5 text-sm text-gray-500 dark:text-gray-400" role="status">
+        {!error && hint && (
+          <p id={hintId} className="hint mt-1.5 text-sm text-gray-600 dark:text-gray-400" role="status">
             {hint}
           </p>
         )}
@@ -143,8 +143,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
           aria-errormessage={errorId}
           {...props}
         />
-        {hint && !error && (
-          <p id={hintId} className="hint mt-1.5 text-sm text-gray-500 dark:text-gray-400" role="status">
+        {!error && hint && (
+          <p id={hintId} className="hint mt-1.5 text-sm text-gray-600 dark:text-gray-400" role="status">
             {hint}
           </p>
         )}
@@ -208,7 +208,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           ))}
         </select>
         {hint && !error && (
-          <p id={hintId} className="hint mt-1.5 text-sm text-gray-500 dark:text-gray-400" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-gray-600 dark:text-gray-400" role="status">
             {hint}
           </p>
         )}
