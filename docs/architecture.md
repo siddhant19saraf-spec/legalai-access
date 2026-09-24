@@ -26,7 +26,7 @@ flowchart TD
         SRC["Source retrieval<br/>curated VERIFIED_SOURCES table<br/>(in-code, jurisdiction-indexed)"]
         CLAR["Clarification questions<br/>rule-based"]
         PROMPT["build_ai_prompt<br/>risk-guided instructions +<br/>JSON response format"]
-        LLM["LLMClient<br/>OpenAI or Anthropic if valid key;<br/>MockProvider fallback; retries + timeout"]
+        LLM["LLMClient<br/>Llm7Provider (free, OpenAI-compatible) / OpenAI / Anthropic if valid key;<br/>MockProvider fallback; retries + timeout"]
         OUT["OutputValidator<br/>required fields, types,<br/>fabrication heuristics"]
         SAFE_OUT["SafetyLayer<br/>definitive-advice, UPL, disclaimer,<br/>escalation, uncertainty, citation,<br/>injection-in-response checks"]
         RESP["LegalResponse<br/>structured JSON + DISCLAIMER"]
@@ -34,7 +34,7 @@ flowchart TD
 
     MW --> RT --> VAL --> SAFE_IN --> CLS --> SRC --> CLAR --> PROMPT --> LLM --> OUT --> SAFE_OUT --> RESP
 
-    LLM -.->|"real API call (server-side key)"| EXT["LLM provider<br/>OpenAI GPT-4o-mini or<br/>Anthropic Claude 3 Haiku"]
+    LLM -.->|"real API call (server-side key, free tier first)"| EXT["LLM provider<br/>LLM7.io free tier (GPT-4o-mini)<br/>or OpenAI / Anthropic"]
     LLM -.->|"no valid key"| MOCK["MockProvider<br/>(explicit mock text)"]
 
     RESP -->|"AskResponse JSON"| API
@@ -90,6 +90,7 @@ flowchart TD
 
 ## AI Workflow (what actually invokes AI)
 
+- **Free LLM provider (production default):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM, email signup only, no credit card required
 - **Invoked by LLM (when a valid key is configured server-side):** free-text explanation/summary generation only (`gpt-4o-mini` or `claude-3-haiku`, JSON mode, temperature 0.1).
 - **Rule-based (not LLM):** request classification, risk level, jurisdiction detection, legal category, source selection, clarification questions, safety checks, output validation.
 - **No embeddings are invoked in the running pipeline** despite an embedding model name appearing in settings; source retrieval is a curated table lookup, not vector search.
@@ -118,7 +119,7 @@ Curated `VERIFIED_SOURCES` table in `constants.py` (currently: US Federal â€” Fa
 
 | Service | Use |
 |---------|-----|
-| OpenAI API *or* Anthropic API | Chat completion (only when a valid key is configured) |
+| LLM7.io free tier (GPT-4o-mini, OpenAI-compatible) / OpenAI API *or* Anthropic API | Chat completion (only when a valid key is configured) |
 | Vercel | Frontend hosting |
 | Render | Backend hosting (`uvicorn`), health check `/api/v1/health` |
 | GitHub | Source of truth; Render auto-deploys from `main` |

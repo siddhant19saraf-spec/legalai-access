@@ -248,3 +248,40 @@ class TestInputValidation:
         })
         # Accept either 413 (payload too large) or 429 (rate limited from previous tests)
         assert response.status_code in [413, 429]
+
+
+class TestLlm7Provider:
+    def test_provider_can_be_instantiated(self):
+        from app.services.llm_client import Llm7Provider
+        provider = Llm7Provider(api_key="sk-testkey1234567890abcdef")
+        assert provider is not None
+        assert provider.get_model_name() == "gpt-4o-mini"
+
+    def test_provider_normalizes_key(self):
+        from app.services.llm_client import normalize_api_key
+        assert normalize_api_key(None) == ""
+        assert normalize_api_key("") == ""
+
+    async def test_default_provider_selects_llm7_when_key_set(self, client, monkeypatch):
+        from app.services.llm_client import LLMClient, Llm7Provider, normalize_api_key
+        from app.core.config import settings
+        
+        # Save originals
+        original_llm7 = settings.llm7_api_key
+        original_openai = settings.openai_api_key
+        original_anthropic = settings.anthropic_api_key
+        
+        try:
+            # Set LLM7 key, clear others
+            settings.llm7_api_key = "sk-live-test-key-1234567890abcdef"
+            settings.openai_api_key = ""
+            settings.anthropic_api_key = ""
+            
+            client_instance = LLMClient()
+            assert isinstance(client_instance.provider, Llm7Provider)
+            assert client_instance.provider.get_model_name() == "gpt-4o-mini"
+        finally:
+            # Restore originals
+            settings.llm7_api_key = original_llm7
+            settings.openai_api_key = original_openai
+            settings.anthropic_api_key = original_anthropic

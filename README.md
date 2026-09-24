@@ -65,13 +65,13 @@ flowchart LR
 
 ## AI Workflow
 
-**LLM-invoked (when a valid API key is configured server-side):** summary/explanation/next-steps generation only — JSON mode, low temperature, risk-guided system instructions.
+**Free LLM provider (production, no credit card required):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM free, email signup only. Server-side key only (`LLM7_API_KEY` env var). Falls back to OpenAI if configured, else Anthropic, else MockProvider.
 
 **Rule-based (not LLM):** request classification, risk assessment, jurisdiction detection, legal category, source selection, clarification questions, prompt-injection scan, output validation, safety checks.
 
-**Provider selection:** `OPENAI_API_KEY` (gpt-4o-mini) → else `ANTHROPIC_API_KEY` (claude-3-haiku) → else an explicit **MockProvider** that labels its output as mock (visible in responses when no valid key is set).
+**Provider selection:** `LLM7_API_KEY` (free tier, production default) → else `OPENAI_API_KEY` → else `ANTHROPIC_API_KEY` → else MockProvider.
 
-**Not used in the live path:** embeddings/vector search (an embedding model name exists in settings but no retrieval call uses it), document processing, real-time legal data.
+**Not used in the live path:** embeddings/vector search (embedding model name exists in settings but no retrieval call uses it), document processing, real-time legal data.
 
 ## Safety & Responsible AI
 
@@ -137,7 +137,7 @@ Covers the `useLegalAssistant` hook (ask/error/reset/feedback), `QuestionInput` 
 | Frontend tests | Jest, React Testing Library, jsdom |
 | Backend | FastAPI, Pydantic v2, Uvicorn, Python 3.11+ |
 | Backend tests | Pytest, pytest-asyncio, httpx (ASGI) |
-| AI | OpenAI `gpt-4o-mini` *or* Anthropic `claude-3-haiku` (server-side key); mock fallback |
+| AI | LLM7.io free tier (GPT-4o-mini, 30 RPM, email signup, OpenAI-compatible); OpenAI `gpt-4o-mini` *or* Anthropic `claude-3-haiku` (server-side key); MockProvider fallback |
 | Hosting | Vercel (frontend), Render (backend), GitHub (source, Render auto-deploy) |
 
 ## Project Structure
@@ -167,8 +167,9 @@ Template: [.env.example](.env.example)
 
 | Variable | Where | Required | Purpose |
 |----------|-------|----------|---------|
-| `OPENAI_API_KEY` | Render (backend) | one of the two keys | Real LLM responses (preferred) |
+| `OPENAI_API_KEY` | Render (backend) | one of the two keys | Real LLM responses (optional, fallback) |
 | `ANTHROPIC_API_KEY` | Render (backend) | alternative | Real LLM responses |
+| `LLM7_API_KEY` | Render (backend) | **required** for production free tier | LLM7.io free API key (no credit card) |
 | `SECRET_KEY` | Render | recommended | App secret (≥ 32 chars) |
 | `BACKEND_CORS_ORIGINS` | Render | yes | Allowed frontend origins |
 | `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` | Render | no | Defaults 30 / 60 |
@@ -227,7 +228,8 @@ Visit `http://localhost:3000` (UI) and `http://localhost:8000/docs` (OpenAPI).
 3. **Curated sources only** — no live legal research; many jurisdictions/categories have no matching source (UI states this honestly)
 4. **No document upload**, no user accounts, no persistent sessions
 5. **No real-time legal data** — model training-cutoff knowledge
-6. **Mock mode** when no valid LLM key is configured (responses are labeled as mock)
+6. **Mock mode** when no valid LLM key is configured (responses are labeled as mock).
+- **Free LLM provider (production default):** LLM7.io � no credit card required, email signup only, 30 RPM free tier; responses are real AI, not mock
 7. **Not formally audited** for WCAG 2.1 AA or independent security review
 8. Rate limit is per-instance in-memory (resets on deploy; not distributed)
 

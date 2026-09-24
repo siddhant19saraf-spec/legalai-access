@@ -5,7 +5,11 @@ import json
 
 
 class Settings(BaseSettings):
-    # AI Provider
+    # AI Provider (free tier first)
+    llm7_api_key: str = Field(default="", validation_alias="LLM7_API_KEY")
+    llm7_model: str = Field(default="gpt-4o-mini", validation_alias="LLM7_MODEL")
+
+    # OpenAI (optional, fallback)
     openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4o-mini", validation_alias="OPENAI_MODEL")
     openai_embedding_model: str = Field(default="text-embedding-3-small", validation_alias="OPENAI_EMBEDDING_MODEL")

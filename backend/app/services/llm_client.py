@@ -1,4 +1,5 @@
 import asyncio
+import httpx
 import logging
 import os
 from abc import ABC, abstractmethod
@@ -234,6 +235,70 @@ class MockProvider(LLMProvider):
         return self.model
 
 
+class Llm7Provider(LLMProvider):
+    """Free tier provider via LLM7.io - OpenAI-compatible, no credit card required."""
+    
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+        self.api_key = api_key.strip() if api_key else ""
+        self.model = model
+        self._client: Optional[httpx.AsyncClient] = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url="https://api.llm7.io/v1",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=30.0,
+            )
+        return self._client
+
+    async def complete(
+        self,
+        messages: List[LLMMessage],
+        temperature: float = 0.1,
+        max_tokens: int = 2000,
+        response_format: Optional[Dict[str, Any]] = None,
+    ) -> LLMResponse:
+        import time
+        start = time.time()
+        
+        client = self._get_client()
+        
+        formatted_messages = [{"role": m.role, "content": m.content} for m in messages]
+        
+        kwargs = {
+            "model": self.model,
+            "messages": formatted_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        
+        if response_format:
+            kwargs["response_format"] = response_format
+        
+        response = await client.chat.completions.create(**kwargs)
+        
+        latency_ms = int((time.time() - start) * 1000)
+        
+        usage = None
+        if response.usage:
+            usage = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens,
+            }
+        
+        return LLMResponse(
+            content=response.choices[0].message.content or "",
+            model=self.model,
+            usage=usage,
+            latency_ms=latency_ms,
+        )
+
+    def get_model_name(self) -> str:
+        return self.model
+
+
 class LLMClient:
     """Main client for interacting with LLM providers with resilience"""
     
@@ -253,13 +318,17 @@ class LLMClient:
             self.provider = self._create_default_provider()
 
     def _create_default_provider(self) -> LLMProvider:
+        llm7_key = normalize_api_key(settings.llm7_api_key)
         openai_key = normalize_api_key(settings.openai_api_key)
         anthropic_key = normalize_api_key(settings.anthropic_api_key)
 
+        is_valid_llm7 = bool(llm7_key) and not llm7_key.startswith("test-") and len(llm7_key) > 10
         is_valid_openai = bool(openai_key) and not openai_key.startswith("test-") and len(openai_key) > 20
         is_valid_anthropic = bool(anthropic_key) and not anthropic_key.startswith("test-") and len(anthropic_key) > 20
 
-        if is_valid_openai:
+        if is_valid_llm7:
+            return Llm7Provider(llm7_key, settings.llm7_model or "gpt-4o-mini")
+        elif is_valid_openai:
             return OpenAIProvider(openai_key, settings.openai_model)
         elif is_valid_anthropic:
             return AnthropicProvider(anthropic_key, settings.anthropic_model)
