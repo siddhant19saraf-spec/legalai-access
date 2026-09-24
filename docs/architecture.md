@@ -22,17 +22,23 @@ flowchart TD
         RT["app/api/routes.py<br/>/ask /health /jurisdictions<br/>/categories /feedback"]
         VAL["Pydantic schemas<br/>AskRequest: length + enum validation"]
         SAFE_IN["PromptInjectionDefense<br/>pattern scan, risk score,<br/>strict sanitize / block"]
+        QL["QuestionQuality analysis<br/>completeness score (0-100),<br/>missing info detection"]
         CLS["Classification<br/>request type, legal category,<br/>jurisdiction detection, risk level"]
         SRC["Source retrieval<br/>curated VERIFIED_SOURCES table<br/>(in-code, jurisdiction-indexed)"]
+        IC["InformationCoverage assessment<br/>high / moderate / limited<br/>based on jurisdiction + sources"]
         CLAR["Clarification questions<br/>rule-based"]
+        TERM["Terminology extraction<br/>click-to-expand legal terms"]
+        DOC["Document checklist<br/>category-specific document lists"]
+        FU["Follow-up suggestions<br/>context-aware templates"]
         PROMPT["build_ai_prompt<br/>risk-guided instructions +<br/>JSON response format"]
         LLM["LLMClient<br/>Llm7Provider (free, OpenAI-compatible) / OpenAI / Anthropic if valid key;<br/>TestProvider (Deterministic Legal Information Engine) fallback; retries + timeout"]
         OUT["OutputValidator<br/>required fields, types,<br/>fabrication heuristics"]
         SAFE_OUT["SafetyLayer<br/>definitive-advice, UPL, disclaimer,<br/>escalation, uncertainty, citation,<br/>injection-in-response checks"]
-        RESP["LegalResponse<br/>structured JSON + DISCLAIMER"]
+        PROV["Provider status<br/>Deterministic Engine or AI Provider"]
+        RESP["LegalResponse<br/>structured JSON + DISCLAIMER +<br/>question_quality, coverage,<br/>terminology, checklist, follow_ups"]
     end
 
-    MW --> RT --> VAL --> SAFE_IN --> CLS --> SRC --> CLAR --> PROMPT --> LLM --> OUT --> SAFE_OUT --> RESP
+    MW --> RT --> VAL --> SAFE_IN --> QL --> CLS --> SRC --> IC --> CLAR --> TERM --> DOC --> FU --> PROMPT --> LLM --> OUT --> SAFE_OUT --> PROV --> RESP
 
     LLM -.->|"real API call (server-side key, free tier first)"| EXT["LLM provider<br/>LLM7.io free tier (GPT-4o-mini)<br/>or OpenAI / Anthropic"]
     LLM -.->|"no valid key"| MOCK["TestProvider<br/>(Deterministic Legal Information Engine)"]
@@ -49,7 +55,7 @@ flowchart TD
 |-------|----------|------|
 | Page / workspace | `frontend/src/app/page.tsx` | Workspace form vs. loading/error/response views, health badge, footer |
 | Form | `frontend/src/components/QuestionInput.tsx` | Question, jurisdiction select, optional context, validation, examples |
-| Response UI | `frontend/src/components/ResponseDisplay.tsx` | Structured sections incl. disclaimer, sources, escalation |
+| Response UI | `frontend/src/components/ResponseDisplay.tsx` | Structured sections incl. question quality, information coverage, why this response, document checklist, terminology explainer, next steps with checkboxes, follow-up suggestions, provider status, privacy notice, export actions |
 | State hook | `frontend/src/hooks/useLegalAssistant.ts` | ask / clear / feedback, AbortController, error mapping |
 | API client | `frontend/src/lib/api.ts` | `NEXT_PUBLIC_API_URL` base, `ApiError` mapping |
 | Accessible primitives | `frontend/src/components/AccessibleComponents.tsx` | Labelled inputs, focus rings, hints/errors |
@@ -90,7 +96,7 @@ flowchart TD
 
 ## AI Workflow (what actually invokes AI)
 
-- **Free LLM provider (production default):** LLM7.io — OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM, email signup only, no credit card required
+- **Free LLM provider (production default):** LLM7.io ï¿½ OpenAI-compatible, GPT-4o-mini on free tier, 30 RPM, email signup only, no credit card required
 - **Invoked by LLM (when a valid key is configured server-side):** free-text explanation/summary generation only (`gpt-4o-mini` or `claude-3-haiku`, JSON mode, temperature 0.1).
 - **Rule-based (not LLM):** request classification, risk level, jurisdiction detection, legal category, source selection, clarification questions, safety checks, output validation.
 - **No embeddings are invoked in the running pipeline** despite an embedding model name appearing in settings; source retrieval is a curated table lookup, not vector search.
