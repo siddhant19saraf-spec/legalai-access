@@ -16,11 +16,17 @@ router = APIRouter(prefix="/api/v1", tags=["legal-assistance"])
 # In-memory feedback storage (replace with database in production)
 feedback_store: list = []
 
+# Cached LLM client for health checks to avoid provider re-initialization
+_cached_health_client = None
+
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
+    global _cached_health_client
     from app.services.llm_client import get_llm_client
-    client = get_llm_client()
+    if _cached_health_client is None:
+        _cached_health_client = get_llm_client()
+    client = _cached_health_client
     ai_provider = type(client.provider).__name__
     return HealthResponse(
         status="healthy",

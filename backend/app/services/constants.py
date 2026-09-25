@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, NamedTuple
 from urllib.parse import urlparse
 
 from app.models.schemas import (
@@ -230,6 +230,208 @@ LEGAL_TERMINOLOGY = {
     ),
 }
 
+# Unified question analysis - scans question once, computes all classifications
+class QuestionAnalysis(NamedTuple):
+    """Unified question analysis result to avoid repeated scanning."""
+    question_lower: str
+    request_type: RequestType
+    legal_category: LegalCategory
+    jurisdiction: Jurisdiction
+    risk_level: RiskLevel
+    quality: QuestionQuality
+    terminology_explanations: List[TerminologyExplanation]
+    document_checklist: List[DocumentChecklistItem]
+    follow_up_suggestions: List[FollowUpSuggestion]
+    clarification_questions: List[ClarificationQuestion]
+    sources: List[Source]
+    information_coverage: CoverageLevel
+    coverage_reason: str
+
+
+def analyze_question_unified(
+    question: str,
+    context: Optional[str] = None,
+    jurisdiction_hint: Optional[Jurisdiction] = None,
+) -> QuestionAnalysis:
+    """
+    Unified question analysis - scans question once and computes all classifications.
+    This avoids repeated regex scanning across multiple functions.
+    """
+    question_lower = question.strip().lower()
+    text_with_context = question_lower + " " + (context or "").lower()
+    
+    # Single pass: classify request type
+    request_type = RequestType.GENERAL_INFO
+    for req_type, patterns in REQUEST_TYPE_PATTERNS.items():
+        for pattern in patterns:
+            if re.search(pattern, question_lower):
+                request_type = req_type
+                break
+        if request_type != RequestType.GENERAL_INFO:
+            break
+    
+    # Single pass: classify legal category
+    scores = {}
+    for category, patterns in LEGAL_CATEGORY_PATTERNS.items():
+        score = sum(1 for pattern in patterns if re.search(pattern, question_lower))
+        if score > 0:
+            scores[category] = score
+    legal_category = max(scores, key=scores.get) if scores else LegalCategory.OTHER
+    
+    # Detect jurisdiction
+    if jurisdiction_hint and jurisdiction_hint != Jurisdiction.UNKNOWN:
+        jurisdiction = jurisdiction_hint
+    else:
+        jurisdiction = Jurisdiction.UNKNOWN
+        for jur, patterns in JURISDICTION_PATTERNS.items():
+            for pattern in patterns:
+                if re.search(pattern, question_lower + " " + (context or "").lower()):
+                    jurisdiction = jur
+                    break
+            if jurisdiction != Jurisdiction.UNKNOWN:
+                break
+    
+    # Risk assessment
+    risk_level = RiskLevel.LOW
+    for keyword in HIGH_RISK_KEYWORDS[RiskLevel.CRITICAL]:
+        if keyword in question_lower:
+            risk_level = RiskLevel.CRITICAL
+            break
+    if risk_level != RiskLevel.CRITICAL:
+        for keyword in HIGH_RISK_KEYWORDS[RiskLevel.HIGH]:
+            if keyword in question_lower:
+                risk_level = RiskLevel.HIGH
+                break
+    if risk_level not in (RiskLevel.CRITICAL, RiskLevel.HIGH):
+        for keyword in HIGH_RISK_KEYWORDS[RiskLevel.MEDIUM]:
+            if keyword in question_lower:
+                risk_level = RiskLevel.MEDIUM
+                break
+    if risk_level == RiskLevel.LOW:
+        if legal_category in [LegalCategory.CRIMINAL, LegalCategory.IMMIGRATION]:
+            risk_level = RiskLevel.HIGH
+    
+    # Source retrieval (early, reused by coverage)
+    sources = []
+    if jurisdiction in VERIFIED_SOURCES:
+        sources.extend(VERIFIED_SOURCES[jurisdiction])
+    if jurisdiction in [Jurisdiction.US_CA, Jurisdiction.US_NY, Jurisdiction.US_TX]:
+        sources.extend(VERIFIED_SOURCES.get(Jurisdiction.US_FEDERAL, []))
+    sources = sources[:5]
+    
+    # Question quality
+    missing = []
+    if jurisdiction == Jurisdiction.UNKNOWN:
+        missing.append("jurisdiction (state/country)")
+    words = question_lower.split()
+    if len(words) < 5:
+        missing.append("specific details about the situation")
+    if legal_category == LegalCategory.HOUSING and "eviction" in question_lower:
+        if "written" not in question_lower and "notice" not in question_lower:
+            missing.append("whether a written notice was received")
+    if legal_category == LegalCategory.EMPLOYMENT and "terminat" in question_lower:
+        if "employer size" not in question_lower:
+            missing.append("employer size and tenure details")
+    score = max(0, 100 - (len(missing) * 25))
+    level = "complete" if score >= 75 else ("partial" if score >= 50 else "needs_more_context")
+    quality = QuestionQuality(
+        score=score, level=level, missing_information=missing, is_complete=(score >= 75)
+    )
+    
+    # Terminology explanations
+    terminology_explanations = [
+        explanation for term, explanation in LEGAL_TERMINOLOGY.items()
+        if term.lower() in question_lower
+    ]
+    
+    # Document checklist
+    category_key = legal_category.value
+    if category_key in DOCUMENT_CHECKLISTS:
+        document_checklist = DOCUMENT_CHECKLISTS[category_key]
+    else:
+        document_checklist = [
+            DocumentChecklistItem(item="Relevant documents related to the matter", category=category_key),
+            DocumentChecklistItem(item="Correspondence or communications", category=category_key),
+            DocumentChecklistItem(item="Records and supporting evidence", category=category_key),
+        ]
+    
+    # Follow-up suggestions
+    if category_key in FOLLOW_UP_TEMPLATES:
+        follow_up_suggestions = FOLLOW_UP_TEMPLATES[category_key]
+    else:
+        follow_up_suggestions = [
+            FollowUpSuggestion(question="What if I received a written notice?", reason="Understanding the notice type helps clarify your rights", category="general"),
+            FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important", category="general"),
+            FollowUpSuggestion(question="What information should I gather for a lawyer?", reason="Being organized helps legal professionals assess your situation", category="general"),
+        ]
+    
+    # Clarification questions
+    clarification_questions = []
+    if jurisdiction == Jurisdiction.UNKNOWN:
+        clarification_questions.append(ClarificationQuestion(
+            question="What is your location (state/country)? Legal information varies significantly by jurisdiction.",
+            reason="Jurisdiction is required for accurate legal information", required=True
+        ))
+    if request_type == RequestType.DEADLINE_INQUIRY:
+        clarification_questions.append(ClarificationQuestion(
+            question="When did the event or incident occur? This helps determine applicable deadlines.",
+            reason="Deadlines depend on specific dates", required=True
+        ))
+    if legal_category == LegalCategory.HOUSING and "eviction" in question_lower:
+        clarification_questions.append(ClarificationQuestion(
+            question="Have you received a written eviction notice? If so, what type (e.g., 3-day, 30-day)?",
+            reason="Eviction procedures vary by notice type", required=True
+        ))
+    if legal_category == LegalCategory.EMPLOYMENT and "terminat" in question_lower:
+        clarification_questions.append(ClarificationQuestion(
+            question="How many employees does your employer have? This affects which laws apply.",
+            reason="Employment law thresholds vary by employer size", required=False
+        ))
+    
+    # Information coverage
+    if jurisdiction == Jurisdiction.UNKNOWN:
+        information_coverage = CoverageLevel.LIMITED
+        coverage_reason = "The question does not specify a jurisdiction. Source coverage may be limited."
+    elif not sources:
+        information_coverage = CoverageLevel.LIMITED
+        coverage_reason = "No verified sources are available for this topic in the detected jurisdiction."
+    elif jurisdiction in [Jurisdiction.US_CA, Jurisdiction.US_NY, Jurisdiction.US_TX]:
+        if len(sources) >= 3:
+            information_coverage = CoverageLevel.HIGH
+            coverage_reason = "Good source coverage: both federal and state sources available."
+        else:
+            information_coverage = CoverageLevel.MODERATE
+            coverage_reason = "Some source coverage available, but may be limited."
+    elif jurisdiction == Jurisdiction.US_FEDERAL:
+        information_coverage = CoverageLevel.MODERATE
+        coverage_reason = "Federal source coverage available. State-specific details may be limited."
+    else:
+        information_coverage = CoverageLevel.LIMITED
+        coverage_reason = "Verified curated source coverage is currently limited for this jurisdiction."
+    
+    # Terminology explanations (reused)
+    terminology_explanations = [
+        explanation for term, explanation in LEGAL_TERMINOLOGY.items()
+        if term.lower() in question_lower
+    ]
+    
+    return QuestionAnalysis(
+        question_lower=question_lower,
+        request_type=request_type,
+        legal_category=legal_category,
+        jurisdiction=jurisdiction,
+        risk_level=risk_level,
+        quality=quality,
+        terminology_explanations=terminology_explanations,
+        document_checklist=document_checklist,
+        follow_up_suggestions=follow_up_suggestions,
+        clarification_questions=clarification_questions,
+        sources=sources,
+        information_coverage=information_coverage,
+        coverage_reason=coverage_reason,
+    )
+
+
 # Document checklists by category
 DOCUMENT_CHECKLISTS = {
     "housing": [
@@ -365,112 +567,49 @@ def assess_information_coverage(
     return CoverageLevel.LIMITED, "Verified curated source coverage is currently limited for this jurisdiction."
 
 
-def get_document_checklist(legal_category: LegalCategory) -> List[DocumentChecklistItem]:
-    """Get relevant document checklist items for a legal category."""
-    category_key = legal_category.value
-    if category_key in DOCUMENT_CHECKLISTS:
-        return DOCUMENT_CHECKLISTS[category_key]
-    # Generic checklist
-    return [
-        DocumentChecklistItem(item="Relevant documents related to the matter", category=category_key),
-        DocumentChecklistItem(item="Correspondence or communications", category=category_key),
-        DocumentChecklistItem(item="Records and supporting evidence", category=category_key),
-    ]
-
-
-def get_follow_up_suggestions(legal_category: LegalCategory, jurisdiction: Jurisdiction) -> List[FollowUpSuggestion]:
-    """Get context-aware follow-up question suggestions."""
-    category_key = legal_category.value
-    if category_key in FOLLOW_UP_TEMPLATES:
-        return FOLLOW_UP_TEMPLATES[category_key]
-    return [
-        FollowUpSuggestion(question="What if I received a written notice?", reason="Understanding the notice type helps clarify your rights", category="general"),
-        FollowUpSuggestion(question="What documents should I keep?", reason="Document preservation is important", category="general"),
-        FollowUpSuggestion(question="What information should I gather for a lawyer?", reason="Being organized helps legal professionals assess your situation", category="general"),
-    ]
-
-
 def get_terminology_explanations(question: str, legal_category: LegalCategory) -> List[TerminologyExplanation]:
     """Extract relevant legal terminology explanations from the question."""
-    question_lower = question.lower()
-    explanations = []
-    for term, explanation in LEGAL_TERMINOLOGY.items():
-        if term.lower() in question_lower:
-            explanations.append(explanation)
-    return explanations
-    question_lower = question.lower()
+    return analyze_question_unified(question, legal_category=legal_category).terminology_explanations
+
 
 def classify_request_type(question: str) -> RequestType:
-    question_lower = question.lower()
-    for req_type, patterns in REQUEST_TYPE_PATTERNS.items():
-        for pattern in patterns:
-            if re.search(pattern, question_lower):
-                return req_type
-    return RequestType.GENERAL_INFO
+    return analyze_question_unified(question).request_type
 
 
 def classify_legal_category(question: str) -> LegalCategory:
-    question_lower = question.lower()
-    scores = {}
-    for category, patterns in LEGAL_CATEGORY_PATTERNS.items():
-        score = sum(1 for pattern in patterns if re.search(pattern, question_lower))
-        if score > 0:
-            scores[category] = score
-    if scores:
-        return max(scores, key=scores.get)
-    return LegalCategory.OTHER
+    return analyze_question_unified(question).legal_category
 
 
 def detect_jurisdiction(question: str, context: Optional[str] = None) -> Jurisdiction:
-    text = (question + " " + (context or "")).lower()
-    for jurisdiction, patterns in JURISDICTION_PATTERNS.items():
-        for pattern in patterns:
-            if re.search(pattern, text):
-                return jurisdiction
-    return Jurisdiction.UNKNOWN
+    return analyze_question_unified(question, context).jurisdiction
 
 
 def assess_risk_level(question: str, request_type: RequestType, legal_category: LegalCategory) -> RiskLevel:
-    question_lower = question.lower()
-    
-    # Check critical risk keywords
-    for keyword in HIGH_RISK_KEYWORDS[RiskLevel.CRITICAL]:
-        if keyword in question_lower:
-            return RiskLevel.CRITICAL
-    
-    # Check high risk keywords
-    for keyword in HIGH_RISK_KEYWORDS[RiskLevel.HIGH]:
-        if keyword in question_lower:
+    # Use unified analysis for consistency
+    analysis = analyze_question_unified(question)
+    # Override with provided request_type and legal_category if they differ
+    if analysis.request_type != request_type or analysis.legal_category != legal_category:
+        # Fall back to original logic for exact backward compat
+        question_lower = question.lower()
+        for keyword in HIGH_RISK_KEYWORDS[RiskLevel.CRITICAL]:
+            if keyword in question_lower:
+                return RiskLevel.CRITICAL
+        for keyword in HIGH_RISK_KEYWORDS[RiskLevel.HIGH]:
+            if keyword in question_lower:
+                return RiskLevel.HIGH
+        for keyword in HIGH_RISK_KEYWORDS[RiskLevel.MEDIUM]:
+            if keyword in question_lower:
+                return RiskLevel.MEDIUM
+        if legal_category in [LegalCategory.CRIMINAL, LegalCategory.IMMIGRATION]:
             return RiskLevel.HIGH
-    
-    # Check medium risk keywords
-    for keyword in HIGH_RISK_KEYWORDS[RiskLevel.MEDIUM]:
-        if keyword in question_lower:
-            return RiskLevel.MEDIUM
-    
-    # Certain categories inherently higher risk
-    if legal_category in [LegalCategory.CRIMINAL, LegalCategory.IMMIGRATION]:
-        return RiskLevel.HIGH
-    if legal_category == LegalCategory.FAMILY and request_type in [RequestType.DEADLINE_INQUIRY, RequestType.ESCALATION_NEEDED]:
-        return RiskLevel.HIGH
-    
-    return RiskLevel.LOW
+        if legal_category == LegalCategory.FAMILY and request_type in [RequestType.DEADLINE_INQUIRY, RequestType.ESCALATION_NEEDED]:
+            return RiskLevel.HIGH
+        return RiskLevel.LOW
+    return analysis.risk_level
 
 
 def retrieve_sources(question: str, jurisdiction: Jurisdiction, legal_category: LegalCategory) -> List[Source]:
-    sources = []
-    
-    # Add jurisdiction-specific sources
-    if jurisdiction in VERIFIED_SOURCES:
-        sources.extend(VERIFIED_SOURCES[jurisdiction])
-    
-    # Add federal sources for US jurisdictions
-    if jurisdiction in [Jurisdiction.US_CA, Jurisdiction.US_NY, Jurisdiction.US_TX]:
-        sources.extend(VERIFIED_SOURCES.get(Jurisdiction.US_FEDERAL, []))
-    
-    # Filter by relevance to legal category (simplified)
-    # In production, this would use vector search / semantic matching
-    return sources[:5]  # Limit to top 5
+    return analyze_question_unified(question, jurisdiction_hint=jurisdiction).sources
 
 
 def generate_clarification_questions(
@@ -479,37 +618,33 @@ def generate_clarification_questions(
     legal_category: LegalCategory,
     jurisdiction: Jurisdiction
 ) -> List[ClarificationQuestion]:
-    questions = []
-    
-    if jurisdiction == Jurisdiction.UNKNOWN:
-        questions.append(ClarificationQuestion(
-            question="What is your location (state/country)? Legal information varies significantly by jurisdiction.",
-            reason="Jurisdiction is required for accurate legal information",
-            required=True
-        ))
-    
-    if request_type == RequestType.DEADLINE_INQUIRY:
-        questions.append(ClarificationQuestion(
-            question="When did the event or incident occur? This helps determine applicable deadlines.",
-            reason="Deadlines depend on specific dates",
-            required=True
-        ))
-    
-    if legal_category == LegalCategory.HOUSING and "eviction" in question.lower():
-        questions.append(ClarificationQuestion(
-            question="Have you received a written eviction notice? If so, what type (e.g., 3-day, 30-day)?",
-            reason="Eviction procedures vary by notice type",
-            required=True
-        ))
-    
-    if legal_category == LegalCategory.EMPLOYMENT and "terminat" in question.lower():
-        questions.append(ClarificationQuestion(
-            question="How many employees does your employer have? This affects which laws apply.",
-            reason="Employment law thresholds vary by employer size",
-            required=False
-        ))
-    
-    return questions
+    return analyze_question_unified(question).clarification_questions
+
+
+def analyze_question_quality(question: str, legal_category: LegalCategory, jurisdiction: Jurisdiction) -> QuestionQuality:
+    return analyze_question_unified(question, jurisdiction_hint=jurisdiction).quality
+
+
+def assess_information_coverage(
+    question: str,
+    jurisdiction: Jurisdiction,
+    sources: List[Source],
+    legal_category: LegalCategory
+) -> tuple[CoverageLevel, str]:
+    return analyze_question_unified(question, jurisdiction_hint=jurisdiction).information_coverage, \
+           analyze_question_unified(question, jurisdiction_hint=jurisdiction).coverage_reason
+
+
+def get_document_checklist(legal_category: LegalCategory) -> List[DocumentChecklistItem]:
+    return analyze_question_unified("", legal_category=legal_category).document_checklist
+
+
+def get_follow_up_suggestions(legal_category: LegalCategory, jurisdiction: Jurisdiction) -> List[FollowUpSuggestion]:
+    return analyze_question_unified("", legal_category=legal_category).follow_up_suggestions
+
+
+def get_terminology_explanations(question: str, legal_category: LegalCategory) -> List[TerminologyExplanation]:
+    return analyze_question_unified(question, legal_category=legal_category).terminology_explanations
 
 
 def build_ai_prompt(

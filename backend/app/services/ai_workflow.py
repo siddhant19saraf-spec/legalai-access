@@ -41,6 +41,7 @@ from app.services.constants import (
     assess_risk_level, retrieve_sources, generate_clarification_questions,
     build_ai_prompt, analyze_question_quality, assess_information_coverage,
     get_document_checklist, get_follow_up_suggestions, get_terminology_explanations,
+    analyze_question_unified, QuestionAnalysis,
 )
 
 logger = get_request_logger()
@@ -158,27 +159,28 @@ async def process_legal_question(
             metadata={"request_id": request_id, "context": context}
         )
         
-        # Step 3: Request Classification
-        request_type = classify_request_type(question)
-        log_classification(
-            request_type=request_type.value,
-            legal_category="",  # Will be set below
-            risk_level="",      # Will be set below
-            jurisdiction=request.jurisdiction.value if request.jurisdiction else "unknown",
-        )
+        # Step 3-8: Unified Question Analysis (single pass, replaces multiple individual calls)
+        # This replaces: classify_request_type, classify_legal_category, detect_jurisdiction,
+        # assess_risk_level, retrieve_sources, generate_clarification_questions,
+        # analyze_question_quality, assess_information_coverage, get_terminology_explanations,
+        # get_document_checklist, get_follow_up_suggestions
+        analysis = analyze_question_unified(question, context, request.jurisdiction)
         
-        # Step 4: Jurisdiction Detection
-        jurisdiction = request.jurisdiction
-        if jurisdiction is None:
-            jurisdiction = detect_jurisdiction(question, context)
+        request_type = analysis.request_type
+        legal_category = analysis.legal_category
+        jurisdiction = analysis.jurisdiction or request.jurisdiction
+        risk_level = analysis.risk_level
+        sources = analysis.sources
+        clarification_questions = analysis.clarification_questions
+        question_quality = analysis.quality
+        information_coverage = analysis.information_coverage
+        coverage_reason = analysis.coverage_reason
+        terminology_explanations = analysis.terminology_explanations
+        document_checklist = analysis.document_checklist
+        follow_up_suggestions = analysis.follow_up_suggestions
+        clarification_questions = analysis.clarification_questions
         
-        # Step 5: Legal Category Classification
-        legal_category = classify_legal_category(question)
-        
-        # Step 6: Risk Assessment
-        risk_level = assess_risk_level(question, request_type, legal_category)
-        
-        # Update classification log with complete info
+        # Log classification
         log_classification(
             request_type=request_type.value,
             legal_category=legal_category.value,
@@ -186,37 +188,13 @@ async def process_legal_question(
             jurisdiction=jurisdiction.value,
         )
         
-        # Step 7: Source Retrieval
-        sources = retrieve_sources(question, jurisdiction, legal_category)
+        # Log source retrieval
         log_source_retrieval(
             source_count=len(sources),
             jurisdiction=jurisdiction.value,
             legal_category=legal_category.value,
         )
         
-        # Step 8: Generate Clarification Questions
-        clarification_questions = generate_clarification_questions(
-            question, request_type, legal_category, jurisdiction
-        )
-
-        # Step 8.5: Question Quality Analysis
-        question_quality = analyze_question_quality(question, legal_category, jurisdiction)
-
-        # Step 8.6: Information Coverage Assessment
-        sources = retrieve_sources(question, jurisdiction, legal_category)
-        information_coverage, coverage_reason = assess_information_coverage(
-            question, jurisdiction, sources, legal_category
-        )
-
-        # Step 8.7: Terminology Explanations
-        terminology_explanations = get_terminology_explanations(question, legal_category)
-
-        # Step 8.8: Document Checklist
-        document_checklist = get_document_checklist(legal_category)
-
-        # Step 8.9: Follow-up Suggestions
-        follow_up_suggestions = get_follow_up_suggestions(legal_category, jurisdiction)
-
         # Add clarification questions to conversation context if any
         if clarification_questions:
             for cq in clarification_questions:
