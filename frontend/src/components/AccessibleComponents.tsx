@@ -30,30 +30,34 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
 );
 Button.displayName = 'Button';
 
-export const PrimaryButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className = '', ...props }, ref) => (
-    <Button ref={ref} variant="primary" className={className} {...props} />
+type ButtonWrapperProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  size?: 'sm' | 'md' | 'lg';
+};
+
+export const PrimaryButton = forwardRef<HTMLButtonElement, ButtonWrapperProps>(
+  ({ className = '', size, ...props }, ref) => (
+    <Button ref={ref} variant="primary" size={size} className={className} {...props} />
   )
 );
 PrimaryButton.displayName = 'PrimaryButton';
 
-export const SecondaryButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className = '', ...props }, ref) => (
-    <Button ref={ref} variant="secondary" className={className} {...props} />
+export const SecondaryButton = forwardRef<HTMLButtonElement, ButtonWrapperProps>(
+  ({ className = '', size, ...props }, ref) => (
+    <Button ref={ref} variant="secondary" size={size} className={className} {...props} />
   )
 );
 SecondaryButton.displayName = 'SecondaryButton';
 
-export const GhostButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className = '', ...props }, ref) => (
-    <Button ref={ref} variant="ghost" className={className} {...props} />
+export const GhostButton = forwardRef<HTMLButtonElement, ButtonWrapperProps>(
+  ({ className = '', size, ...props }, ref) => (
+    <Button ref={ref} variant="ghost" size={size} className={className} {...props} />
   )
 );
 GhostButton.displayName = 'GhostButton';
 
-export const DangerButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className = '', ...props }, ref) => (
-    <Button ref={ref} variant="danger" className={className} {...props} />
+export const DangerButton = forwardRef<HTMLButtonElement, ButtonWrapperProps>(
+  ({ className = '', size, ...props }, ref) => (
+    <Button ref={ref} variant="danger" size={size} className={className} {...props} />
   )
 );
 DangerButton.displayName = 'DangerButton';

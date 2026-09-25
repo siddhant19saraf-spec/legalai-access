@@ -107,51 +107,60 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <nav className="max-w-5xl mx-auto px-4 py-4 sm:px-6 lg:px-8" aria-label="Main navigation">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-xl" aria-hidden="true">
-                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 py-3.5 sm:px-6 lg:px-8" aria-label="Main navigation">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <div className="flex items-center justify-center w-9 h-9 bg-blue-600 rounded-xl">
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   <path d="M2 12h20" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">LegalAI Access</h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Structured, jurisdiction-aware legal information — not legal advice.</p>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">LegalAI Access</h1>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Structured Legal Information</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full ${
                 healthStatus === 'healthy'
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  ? 'bg-purple-50 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800'
                   : healthStatus === 'unhealthy'
-                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                  ? 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200 border border-red-200 dark:border-red-800'
+                  : 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-yellow-500'}`} aria-hidden="true" />
-                {healthStatus === 'healthy' ? 'Legal Information Mode' : healthStatus === 'unhealthy' ? 'Service Unavailable' : 'Connecting...'}
+                <span className={`w-1.5 h-1.5 rounded-full ${healthStatus === 'healthy' ? 'bg-purple-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-yellow-500'}`} aria-hidden="true" />
+                {healthStatus === 'healthy' ? 'Legal Information Mode' : healthStatus === 'unhealthy' ? 'Service Unavailable' : 'Connecting…'}
               </span>
             </div>
           </div>
-        </nav>
+        </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8" id="main-content">
+      <main className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8" id="main-content">
         <PersistentDisclaimer />
 
         {(!response && !isLoading) || showNewQuestion ? (
-            <section className="space-y-8" aria-labelledby="hero-heading">
-              <header className="text-center py-8">
-                <h2 id="hero-heading" className="text-3xl font-bold text-gray-900 sm:text-4xl tracking-tight">
-                  Get Clear Legal Information, Tailored to You
-                </h2>
-                <p className="mt-4 text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
-                  Ask a legal question and receive structured, jurisdiction-aware guidance. This is not legal advice — consult an attorney for your specific situation.
+            <section className="space-y-6" aria-labelledby="hero-heading">
+              <header className="text-center py-6" id="hero-heading">
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+                  LEGAL INFORMATION ASSISTANT
                 </p>
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  Question Quality • Risk Assessment • Source Transparency • Actionable Next Steps
+                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">
+                  Understand Your Legal Situation Clearly.
+                </h2>
+                <p className="mt-3 text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                  Structured, jurisdiction-aware legal information with risk signals, relevant sources, and practical next steps.
+                </p>
+                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 flex-wrap">
+                  <span>Question Quality</span>
+                  <span aria-hidden="true">•</span>
+                  <span>Risk Assessment</span>
+                  <span aria-hidden="true">•</span>
+                  <span>Source Transparency</span>
+                  <span aria-hidden="true">•</span>
+                  <span>Actionable Next Steps</span>
                 </p>
               </header>
 
