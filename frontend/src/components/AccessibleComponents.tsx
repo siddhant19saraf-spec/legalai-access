@@ -15,9 +15,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
         ${size === 'sm' ? 'px-3 py-1.5 text-xs' : size === 'lg' ? 'px-6 py-3 text-base' : 'px-4 py-2.5 text-sm'}
-        ${variant === 'primary' ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm' : ''}
-        ${variant === 'secondary' ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500' : ''}
-        ${variant === 'ghost' ? 'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500' : ''}
+        ${variant === 'primary' ? 'bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 shadow-lg shadow-blue-600/20 glow-blue hover:shadow-blue-600/30' : ''}
+        ${variant === 'secondary' ? 'bg-slate-800 text-slate-300 border border-slate-600 hover:bg-slate-700 focus:ring-gray-500' : ''}
+        ${variant === 'ghost' ? 'bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white focus:ring-gray-500' : ''}
         ${variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm' : ''}
       `}
       disabled={disabled}
@@ -75,7 +75,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label htmlFor={id} className="label block text-sm font-medium text-slate-300 mb-1.5">
             {label}
           </label>
         )}
@@ -87,7 +87,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
             ${error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+              : 'border-slate-600 dark:border-slate-500 focus:ring-blue-500 focus:border-blue-500 bg-slate-800/50 text-white dark:text-white'
             }
             ${className}
           `}
@@ -97,12 +97,12 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
           {...props}
         />
         {!error && hint && (
-          <p id={hintId} className="hint mt-1.5 text-sm text-gray-600 dark:text-gray-400" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-slate-400" role="status">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="error-text mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
+          <p id={errorId} className="error-text mt-1.5 text-sm text-red-400" role="alert" aria-live="polite">
             {error}
           </p>
         )}
@@ -125,7 +125,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label htmlFor={id} className="label block text-sm font-medium text-slate-300 mb-1.5">
             {label}
           </label>
         )}
@@ -138,7 +138,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
             ${error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+              : 'border-slate-600 dark:border-slate-500 focus:ring-blue-500 focus:border-blue-500 bg-slate-800/50 text-white dark:text-white'
             }
             ${className}
           `}
@@ -148,12 +148,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
           {...props}
         />
         {!error && hint && (
-          <p id={hintId} className="hint mt-1.5 text-sm text-gray-600 dark:text-gray-400" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-slate-400" role="status">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="error-text mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
+          <p id={errorId} className="error-text mt-1.5 text-sm text-red-400" role="alert" aria-live="polite">
             {error}
           </p>
         )}
@@ -178,7 +178,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="label block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label htmlFor={id} className="label block text-sm font-medium text-slate-300 mb-1.5">
             {label}
           </label>
         )}
@@ -187,11 +187,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           id={id}
           className={`
             w-full px-4 py-2.5 text-sm border rounded-lg appearance-none
-            bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-pointer
+            bg-slate-800/50 dark:bg-slate-800 text-white dark:text-white cursor-pointer
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
             ${error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
+              : 'border-slate-600 dark:border-slate-500 focus:ring-blue-500 focus:border-blue-500'
             }
             ${className}
           `}
@@ -212,12 +212,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           ))}
         </select>
         {hint && !error && (
-          <p id={hintId} className="hint mt-1.5 text-sm text-gray-600 dark:text-gray-400" role="status">
+          <p id={hintId} className="hint mt-1.5 text-sm text-slate-400" role="status">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} className="error-text mt-1.5 text-sm text-red-600" role="alert" aria-live="polite">
+          <p id={errorId} className="error-text mt-1.5 text-sm text-red-400" role="alert" aria-live="polite">
             {error}
           </p>
         )}

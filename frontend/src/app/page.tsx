@@ -106,31 +106,31 @@ export default function HomePage() {
   }, [response]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+    <div className="min-h-screen bg-slate-950">
+      <header className="bg-slate-900/80 border-b border-slate-700/50 sticky top-0 z-40 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3.5 sm:px-6 lg:px-8" aria-label="Main navigation">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3" aria-hidden="true">
-              <div className="flex items-center justify-center w-9 h-9 bg-blue-600 rounded-xl">
+              <div className="flex items-center justify-center w-9 h-9 bg-blue-600 rounded-xl glow-blue">
                 <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   <path d="M2 12h20" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">LegalAI Access</h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Structured Legal Information</p>
+                <h1 className="text-lg font-bold text-white tracking-tight">LegalAI Access</h1>
+                <p className="text-xs text-slate-400">Structured Legal Information</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full ${
                 healthStatus === 'healthy'
-                  ? 'bg-purple-50 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800'
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                   : healthStatus === 'unhealthy'
-                  ? 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200 border border-red-200 dark:border-red-800'
-                  : 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800'
+                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                  : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${healthStatus === 'healthy' ? 'bg-purple-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-yellow-500'}`} aria-hidden="true" />
+                <span className={`w-1.5 h-1.5 rounded-full ${healthStatus === 'healthy' ? 'bg-purple-400' : healthStatus === 'unhealthy' ? 'bg-red-400' : 'bg-yellow-400'}`} aria-hidden="true" />
                 {healthStatus === 'healthy' ? 'Legal Information Mode' : healthStatus === 'unhealthy' ? 'Service Unavailable' : 'Connecting…'}
               </span>
             </div>
@@ -143,26 +143,44 @@ export default function HomePage() {
 
         {(!response && !isLoading) || showNewQuestion ? (
             <section className="space-y-6" aria-labelledby="hero-heading">
-              <header className="text-center py-6" id="hero-heading">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+              <header className="text-center py-4" id="hero-heading">
+                <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">
                   LEGAL INFORMATION ASSISTANT
                 </p>
-                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">
-                  Understand Your Legal Situation Clearly.
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
+                  Understand Your{' '}
+                  <span className="text-blue-400">Legal Situation</span>{' '}
+                  Clearly.
                 </h2>
-                <p className="mt-3 text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                <p className="mt-3 text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
                   Structured, jurisdiction-aware legal information with risk signals, relevant sources, and practical next steps.
                 </p>
-                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 flex-wrap">
-                  <span>Question Quality</span>
-                  <span aria-hidden="true">•</span>
-                  <span>Risk Assessment</span>
-                  <span aria-hidden="true">•</span>
-                  <span>Source Transparency</span>
-                  <span aria-hidden="true">•</span>
-                  <span>Actionable Next Steps</span>
-                </p>
+                <div className="mt-4 flex items-center justify-center gap-2 flex-wrap text-sm text-slate-500">
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-300 rounded-full border border-blue-500/20">Question Quality</span>
+                  <span className="text-slate-600" aria-hidden="true">•</span>
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-300 rounded-full border border-blue-500/20">Risk Assessment</span>
+                  <span className="text-slate-600" aria-hidden="true">•</span>
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-300 rounded-full border border-blue-500/20">Source Transparency</span>
+                  <span className="text-slate-600" aria-hidden="true">•</span>
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-300 rounded-full border border-blue-500/20">Actionable Next Steps</span>
+                </div>
               </header>
+
+              {/* Trust/Safety Panel */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl mx-auto">
+                <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl text-center">
+                  <div className="text-xs font-semibold text-blue-300 mb-1">General Legal Information</div>
+                  <div className="text-xs text-slate-500">Not legal advice</div>
+                </div>
+                <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl text-center">
+                  <div className="text-xs font-semibold text-purple-300 mb-1">Privacy First</div>
+                  <div className="text-xs text-slate-500">Avoid unnecessary sensitive info</div>
+                </div>
+                <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-xl text-center">
+                  <div className="text-xs font-semibold text-green-300 mb-1">Jurisdiction Aware</div>
+                  <div className="text-xs text-slate-500">Select or detect location</div>
+                </div>
+              </div>
 
               <QuestionInput
                 onSubmit={handleAsk}
@@ -234,42 +252,42 @@ export default function HomePage() {
                     <h3 id="privacy-heading" className="sr-only">Privacy Notice</h3>
                     <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
                       <div className="flex items-start gap-3">
-                        <svg className="flex-shrink-0 mt-0.5 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-900">Privacy Notice</h4>
-                          <p className="mt-1 text-sm text-gray-600">
-                            Do not enter unnecessary sensitive personal information such as passwords, financial credentials, government ID numbers, or private medical information. Questions are not saved as a permanent legal record by this interface.
-                          </p>
-                        </div>
+                           <svg className="flex-shrink-0 mt-0.5 h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                         </svg>
+                         <div>
+                           <h4 className="text-sm font-semibold text-white">Privacy Notice</h4>
+                           <p className="mt-1 text-sm text-slate-400">
+                             Do not enter unnecessary sensitive personal information such as passwords, financial credentials, government ID numbers, or private medical information. Questions are not saved as a permanent legal record by this interface.
+                           </p>
+                         </div>
                       </div>
                     </div>
                   </section>
-                  <div className="pt-6 border-t border-gray-200 flex justify-center">
-                    <Button
-                      variant="secondary"
-                      onClick={handleClear}
-                      className="w-full sm:w-auto"
-                    >
-                      Ask Another Question
-                    </Button>
-                  </div>
-                </Fragment>
-              ) : null}
-            </Fragment>
-          )}
+<div className="pt-6 border-t border-slate-700/50 flex justify-center">
+                     <Button
+                       variant="secondary"
+                       onClick={handleClear}
+                       className="w-full sm:w-auto"
+                     >
+                       Ask Another Question
+                     </Button>
+                   </div>
+                 </Fragment>
+               ) : null}
+             </Fragment>
+           )}
 
-        <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              LegalAI Access — Providing structured legal information powered by AI.
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              This platform provides general legal information only, not legal advice. Consult a qualified attorney for matters affecting your rights, liberty, or finances.
-            </p>
-          </div>
-        </footer>
+        <footer className="mt-16 pt-8 border-t border-slate-700/50 text-center">
+           <div className="space-y-2">
+             <p className="text-sm text-slate-500">
+               LegalAI Access — Providing structured legal information.
+             </p>
+             <p className="text-xs text-slate-600">
+               This platform provides general legal information only, not legal advice. Consult a qualified attorney for matters affecting your rights, liberty, or finances.
+             </p>
+           </div>
+         </footer>
       </main>
     </div>
   );

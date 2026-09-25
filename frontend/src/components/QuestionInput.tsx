@@ -61,9 +61,9 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate role="form" aria-label="Legal question form">
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
+      <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 shadow-lg shadow-blue-900/5">
         <div>
-          <label htmlFor="legal-question" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+          <label htmlFor="legal-question" className="block text-sm font-semibold text-white mb-2">
             Your Legal Question
           </label>
           <div className="relative">
@@ -80,24 +80,24 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
                 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0
                 ${questionError || error
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                  : 'border-slate-600 dark:border-slate-500 focus:ring-blue-500 focus:border-blue-500 bg-slate-800/50 text-white'
                 }
                 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
               aria-invalid={!!questionError || !!error}
               aria-describedby={questionError ? 'legal-question-error' : error ? 'legal-question-external-error' : 'legal-question-hint'}
-              aria-required="true"
+aria-required="true"
               disabled={isDisabled}
               maxLength={5000}
             />
-            <div className="absolute bottom-2 right-2 text-xs text-gray-500 dark:text-gray-400 font-mono" aria-hidden="true">
+            <div className="absolute bottom-2 right-2 text-xs text-slate-500 font-mono" aria-hidden="true">
               {charCount} / 5000
             </div>
           </div>
-          <p id="legal-question-hint" className="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2" role="status">
+          <p id="legal-question-hint" className="mt-2 text-sm text-slate-400 flex items-center gap-2" role="status">
             <span>Be specific about your location and situation for better results.</span>
-            <kbd className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 font-mono">Ctrl+Enter</kbd>
-            <span className="text-gray-400">to submit</span>
+            <kbd className="px-1.5 py-0.5 text-xs bg-slate-800 rounded border border-slate-600 font-mono text-slate-300">Ctrl+Enter</kbd>
+            <span className="text-slate-500">to submit</span>
           </p>
           {questionError && (
             <p id="legal-question-error" className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert" aria-live="polite">
@@ -111,7 +111,7 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
           )}
         </div>
 
-        <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="pt-4 border-t border-slate-700/50">
           <Select
             id="jurisdiction"
             label="Jurisdiction"
@@ -128,7 +128,7 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
 
         <details className="group" open={showContext}>
           <summary
-            className="cursor-pointer select-none flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg px-3 py-2 -ml-1 -mr-1 bg-gray-50 dark:bg-gray-800/50"
+            className="cursor-pointer select-none flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg px-3 py-2 -ml-1 -mr-1 bg-slate-800/50"
             onClick={(e) => {
               e.preventDefault();
               setShowContext(!showContext);
@@ -146,23 +146,23 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
             <span>Additional Context (Optional)</span>
           </summary>
           {showContext && (
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 animate-fade-in">
-              <Textarea
-                id="context"
-                label="Additional Details"
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                placeholder="Relevant dates, notices received, previous correspondence, or other details that might help"
-                rows={3}
-                hint="This helps provide more tailored information. Do not include sensitive personal information."
-                disabled={isDisabled}
-                maxLength={2000}
-              />
-            </div>
-          )}
-        </details>
+              <div className="mt-4 pt-4 border-t border-slate-700/50 animate-fade-in">
+                <Textarea
+                  id="context"
+                  label="Additional Details"
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  placeholder="Relevant dates, notices received, previous correspondence, or other details that might help"
+                  rows={3}
+                  hint="This helps provide more tailored information. Do not include sensitive personal information."
+                  disabled={isDisabled}
+                  maxLength={2000}
+                />
+              </div>
+            )}
+          </details>
 
-        <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 flex-wrap">
+        <div className="pt-4 border-t border-slate-700/50 flex items-center gap-3 flex-wrap">
           <PrimaryButton
             type="submit"
             disabled={isDisabled || !question.trim()}
@@ -206,33 +206,56 @@ export function QuestionInput({ onSubmit, isLoading, jurisdictions, error }: Que
           </span>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Example Questions</h3>
-          <ul className="space-y-2" role="list">
-            <li className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-text transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50">
-              &ldquo;My landlord gave me a 3-day eviction notice for non-payment in California. What are my options?&rdquo;
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-text transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50">
-              &ldquo;I received a termination notice from my employer. What are my rights?&rdquo;
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-text transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50">
-              &ldquo;What should I do if a debt collector is calling me about a debt I don&apos;t owe?&rdquo;
-            </li>
-          </ul>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            These are general examples &mdash; not legal advice. For specific situations, consult an attorney.
+        <div className="mt-6 p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl">
+          <h3 className="text-sm font-semibold text-white mb-3">Example Questions</h3>
+          <div className="flex flex-wrap gap-2" role="list">
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => setQuestion("My landlord gave me a 3-day eviction notice for non-payment in California. What are my options?")}
+              className="px-4 py-2.5 text-sm font-medium bg-slate-800 border border-slate-600 rounded-xl text-slate-300 hover:border-blue-500 hover:bg-blue-500/10 hover:text-blue-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              🏠 Housing dispute
+            </button>
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => setQuestion("I received a termination notice from my employer. What are my rights?")}
+              className="px-4 py-2.5 text-sm font-medium bg-slate-800 border border-slate-600 rounded-xl text-slate-300 hover:border-blue-500 hover:bg-blue-500/10 hover:text-blue-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              💼 Employment issue
+            </button>
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => setQuestion("What should I do if a debt collector is calling me about a debt I don't owe?")}
+              className="px-4 py-2.5 text-sm font-medium bg-slate-800 border border-slate-600 rounded-xl text-slate-300 hover:border-blue-500 hover:bg-blue-500/10 hover:text-blue-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              🧾 Consumer issue
+            </button>
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => setQuestion("What are my legal rights and what should I do?")}
+              className="px-4 py-2.5 text-sm font-medium bg-slate-800 border border-slate-600 rounded-xl text-slate-300 hover:border-blue-500 hover:bg-blue-500/10 hover:text-blue-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              ⚖️ General legal question
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            Click to populate the question field. These are general examples — not legal advice.
           </p>
         </div>
 
         {/* Privacy Notice */}
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
           <div className="flex items-start gap-3">
-            <svg className="flex-shrink-0 mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg className="flex-shrink-0 mt-0.5 h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div>
-              <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200">Privacy First</h4>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+              <h4 className="text-sm font-semibold text-blue-300">Privacy First</h4>
+              <p className="mt-1 text-sm text-blue-400">
                 Do not enter unnecessary sensitive personal information such as passwords, financial credentials, government ID numbers, or private medical information. Questions are not saved as a permanent legal record by this interface.
               </p>
             </div>
