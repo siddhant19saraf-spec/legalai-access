@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Deploy sync for 1f83605 - force rebuild with timestamp 2026-09-26
+// Deploy sync for 1f83605 - force rebuild with timestamp 2026-09-26-15:55
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
