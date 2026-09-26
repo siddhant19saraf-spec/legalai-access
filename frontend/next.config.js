@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Trigger Vercel redeploy for commit 1f83605
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
